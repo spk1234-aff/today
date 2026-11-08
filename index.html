@@ -343,7 +343,7 @@ async function enableBadge() {
 /* ====================== ส่งงาน PA ====================== */
 const PA_STD = ['สร้างและหรือพัฒนาหลักสูตร', 'ออกแบบการจัดการเรียนรู้', 'จัดกิจกรรมการเรียนรู้', 'สร้าง/พัฒนาสื่อ นวัตกรรม เทคโนโลยี แหล่งเรียนรู้', 'วัดและประเมินผลการเรียนรู้', 'วิจัยเพื่อแก้ปัญหา/พัฒนาการเรียนรู้', 'จัดบรรยากาศส่งเสริมผู้เรียน', 'อบรมคุณลักษณะที่ดีของผู้เรียน', 'จัดทำข้อมูลสารสนเทศผู้เรียน/รายวิชา', 'ระบบดูแลช่วยเหลือผู้เรียน', 'งานวิชาการและงานอื่นของสถานศึกษา', 'ประสานผู้ปกครอง/ภาคีเครือข่าย', 'พัฒนาตนเองอย่างเป็นระบบ', 'แลกเปลี่ยนเรียนรู้ทางวิชาชีพ', 'นำความรู้/ทักษะมาใช้จัดการเรียนรู้'];
 const PA_QUEUE_PATH = ['แฟ้ม PA', '00 รอจัด'];
-const PA_MAX = 20 * 1024 * 1024;
+const PA_DIRECT = 10 * 1024 * 1024; // ใหญ่กว่านี้ส่งแบบแบ่งช่วง
 let paNote = '', paUploading = [];
 function resizeForWeb(file, max = 2000) {
   return new Promise((res, rej) => {
@@ -360,9 +360,10 @@ async function paSendFiles(files) {
     try {
       let blob = f, name = f.name;
       if (/^image\/(jpeg|png|heic|heif|webp)/.test(f.type) || /\.(heic|heif)$/i.test(f.name)) { try { blob = await resizeForWeb(f); name = f.name.replace(/\.[^.]+$/, '') + '.jpg'; } catch (e) { blob = f; } }
-      if (blob.size > PA_MAX) throw new Error('ไฟล์ใหญ่เกิน 20 MB ใช้ลิงก์ Drive แทน');
       const d = todayISO();
-      const file = await driveUpload(PA_QUEUE_PATH, `${d} ${name}`, blob, { description: note });
+      const file = blob.size > PA_DIRECT
+        ? await driveUploadLarge(PA_QUEUE_PATH, `${d} ${name}`, blob, { description: note }, p => { job.state = `กำลังส่ง ${Math.round(p * 100)}%`; renderUploads(); })
+        : await driveUpload(PA_QUEUE_PATH, `${d} ${name}`, blob, { description: note });
       put('pa', { id: uid(), kind: 'file', name, mime: blob.type, size: blob.size, driveId: file.id, url: file.url, note, status: 'queued', stds: [], date: d, createdAt: Date.now() });
       job.state = '✓ ส่งแล้ว';
     } catch (e) { job.state = '✕ ' + (e.message || 'ส่งไม่สำเร็จ'); }
@@ -370,6 +371,8 @@ async function paSendFiles(files) {
   }
   setTimeout(() => { paUploading = paUploading.filter(j => !j.state.startsWith('✓')); render(); }, 2500);
 }
+const paUploadsHTML = () => paUploading.map(j => `<div class="hint">${esc(j.name)} — ${esc(j.state)}</div>`).join('');
+function renderUploads() { const el = $('#paUp'); if (el) el.innerHTML = paUploadsHTML(); }
 function paAddLink() {
   const url = ($('#paLink')?.value || '').trim(); if (!/^https?:\/\//.test(url)) { toast('วางลิงก์ที่ขึ้นต้นด้วย https://'); return; }
   const note = ($('#paNote')?.value || '').trim();
@@ -412,7 +415,7 @@ function renderPA() {
         <label class="btn ${ready ? '' : 'dis'}">📄 เลือกไฟล์<input type="file" id="paFile" multiple hidden ${ready ? '' : 'disabled'}></label>
       </div>
       <div class="row"><input id="paLink" placeholder="หรือวางลิงก์ Drive / YouTube" style="flex:1;min-width:0;font-size:21px;border:1.5px solid var(--line);border-radius:12px;padding:4px 12px"><button class="btn" id="paLinkBtn">+ ลิงก์</button></div>
-      ${paUploading.map(j => `<div class="hint">${esc(j.name)} — ${esc(j.state)}</div>`).join('')}
+      <div id="paUp">${paUploadsHTML()}</div>
     </div>
     <div class="row" style="margin:12px 0 4px">
       <h2 style="margin:0" class="grow">รอจัด <span class="cnt">${queued.length}</span></h2>
@@ -913,6 +916,28 @@ const blobToB64 = b => new Promise((res, rej) => { const fr = new FileReader(); 
 const dataUrlToBlob = u => { const [h, d] = u.split(','); const mime = h.match(/:(.*?);/)[1]; const bin = atob(d); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: mime }); };
 async function driveUpload(path, name, blob, opts = {}) {
   return (await driveCall({ action: 'upload', path, name, mime: blob.type || 'application/octet-stream', data: await blobToB64(blob), ...opts })).file;
+}
+// ไฟล์ใหญ่: แบ่งส่งทีละช่วงตรงเข้า Drive (resumable upload) ไม่จำกัดขนาด — onProgress(0..1)
+async function driveUploadLarge(path, name, file, opts = {}, onProgress = () => {}) {
+  const s = await driveCall({ action: 'startUpload', path, name, mime: file.type || 'application/octet-stream', size: file.size, origin: location.origin, description: opts.description || '' });
+  const CH = 8 * 1024 * 1024; let off = 0, last = null;
+  const putChunk = (start, end) => new Promise((res, rej) => {
+    const x = new XMLHttpRequest(); x.open('PUT', s.uploadUrl);
+    x.setRequestHeader('Content-Range', `bytes ${start}-${end - 1}/${file.size}`);
+    x.upload.onprogress = e => onProgress((start + e.loaded) / file.size);
+    x.onload = () => res(x); x.onerror = () => rej(new Error('เน็ตหลุดระหว่างส่ง'));
+    x.send(file.slice(start, end));
+  });
+  while (off < file.size) {
+    const end = Math.min(off + CH, file.size);
+    let x, tries = 0;
+    for (;;) { try { x = await putChunk(off, end); break; } catch (e) { if (++tries > 3) throw e; await new Promise(r => setTimeout(r, 1500 * tries)); } }
+    if (x.status === 308) { const r = x.getResponseHeader('Range'); off = r ? +r.split('-')[1] + 1 : end; }
+    else if (x.status >= 200 && x.status < 300) { last = JSON.parse(x.responseText || '{}'); off = file.size; }
+    else throw new Error('ส่งไฟล์ไม่สำเร็จ (' + x.status + ')');
+  }
+  onProgress(1);
+  return (await driveCall({ action: 'info', id: last.id })).file;
 }
 // รูปเล็ก (ไอคอน) ที่เก็บใน Drive: จำไว้ในเครื่องเพื่อแสดงผลเร็วและใช้ออฟไลน์ได้
 const imgCacheKey = id => 'drive-img-' + id;
