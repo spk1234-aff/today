@@ -123,6 +123,12 @@ label.f input,label.f select,label.f textarea{color:var(--text);font-size:23px;b
 .subs{display:flex;flex-direction:column;gap:4px}
 .subs label{display:flex;gap:8px;align-items:center;font-size:21px}
 .subs input[type=text]{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:2px 10px;font-size:21px;min-width:0}
+.pabox{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.btn.dis{opacity:.45;pointer-events:none}
+.stdgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.std{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;flex-direction:column;line-height:1.35}
+.std b{font-size:24px;color:var(--ink)} .std span{font-size:17px;flex:1} .std em{font-style:normal;font-weight:700;color:var(--green)}
+.std.none{border-style:dashed;background:#fff7f7} .std.none em{color:var(--now);font-weight:400}
 .fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));border-radius:999px;padding:10px 24px;font-size:22px;box-shadow:0 8px 22px -6px rgba(39,27,87,.6);z-index:4}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink2);color:#fff;border-radius:999px;padding:6px 22px;z-index:99;font-size:21px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
@@ -148,6 +154,7 @@ label.f input,label.f select,label.f textarea{color:var(--text);font-size:23px;b
     <button data-tab="week">สัปดาห์</button>
     <button data-tab="inbox">กล่องงาน</button>
     <button data-tab="tt">ตารางสอน</button>
+    <button data-tab="pa">ส่งงาน PA</button>
   </nav>
 </header>
 <main id="main"></main>
@@ -167,7 +174,7 @@ const FIREBASE_CONFIG = {
 };
 const FIREBASE_VER = '10.12.2';
 // ข้อมูลของแอปนี้ (เขียนได้)
-const COL = { tasks: 'today_tasks', rules: 'today_rules', occ: 'today_occ' };
+const COL = { tasks: 'today_tasks', rules: 'today_rules', occ: 'today_occ', pa: 'today_pa' };
 // ข้อมูลจากแอปอื่นในบัญชีเดียวกัน (อ่านอย่างเดียว)
 const EXT = { students: 'students', sessions: 'sessions', invoices: 'invoices', splitServices: 'split_services', splitPayments: 'split_payments', splitPeople: 'split_people' };
 const TUTOR_URL = 'https://spk1234-aff.github.io/tutor/', SPLIT_URL = 'https://spk1234-aff.github.io/split/';
@@ -210,12 +217,12 @@ const money = n => (+n).toLocaleString('th-TH', { maximumFractionDigits: 2 });
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2200); }
 
 /* ====================== ข้อมูล ====================== */
-const db = { tasks: {}, rules: {}, occ: {}, settings: structuredClone(DEFAULT_SETTINGS), ext: {} };
+const db = { tasks: {}, rules: {}, occ: {}, pa: {}, settings: structuredClone(DEFAULT_SETTINGS), ext: {} };
 Object.keys(EXT).forEach(k => db.ext[k] = {});
 const LOCAL_KEY = 'today-local-v1', MIRROR_KEY = 'today-cloud-mirror-v1';
 let cloud = null, syncState = 'local';
 function loadFrom(key) {
-  try { const d = JSON.parse(localStorage.getItem(key) || 'null'); if (d) { db.tasks = d.tasks || {}; db.rules = d.rules || {}; db.occ = d.occ || {}; db.settings = { ...structuredClone(DEFAULT_SETTINGS), ...(d.settings || {}) }; if (d.ext) db.ext = { ...db.ext, ...d.ext }; } } catch (e) { console.warn(e); }
+  try { const d = JSON.parse(localStorage.getItem(key) || 'null'); if (d) { db.tasks = d.tasks || {}; db.rules = d.rules || {}; db.occ = d.occ || {}; db.pa = d.pa || {}; db.settings = { ...structuredClone(DEFAULT_SETTINGS), ...(d.settings || {}) }; if (d.ext) db.ext = { ...db.ext, ...d.ext }; } } catch (e) { console.warn(e); }
 }
 function saveSnapshot() { try { localStorage.setItem(cloud ? MIRROR_KEY : LOCAL_KEY, JSON.stringify(db)); } catch (e) { console.warn(e); } }
 const docRef = (col, id) => cloud.fs.doc(cloud.fsdb, 'users', cloud.uid, COL[col], id);
@@ -321,10 +328,106 @@ async function enableBadge() {
   render(); renderBadgeBox();
 }
 
+/* ====================== ส่งงาน PA ====================== */
+const PA_STD = ['สร้างและหรือพัฒนาหลักสูตร', 'ออกแบบการจัดการเรียนรู้', 'จัดกิจกรรมการเรียนรู้', 'สร้าง/พัฒนาสื่อ นวัตกรรม เทคโนโลยี แหล่งเรียนรู้', 'วัดและประเมินผลการเรียนรู้', 'วิจัยเพื่อแก้ปัญหา/พัฒนาการเรียนรู้', 'จัดบรรยากาศส่งเสริมผู้เรียน', 'อบรมคุณลักษณะที่ดีของผู้เรียน', 'จัดทำข้อมูลสารสนเทศผู้เรียน/รายวิชา', 'ระบบดูแลช่วยเหลือผู้เรียน', 'งานวิชาการและงานอื่นของสถานศึกษา', 'ประสานผู้ปกครอง/ภาคีเครือข่าย', 'พัฒนาตนเองอย่างเป็นระบบ', 'แลกเปลี่ยนเรียนรู้ทางวิชาชีพ', 'นำความรู้/ทักษะมาใช้จัดการเรียนรู้'];
+const PA_QUEUE_PATH = ['แฟ้ม PA', '00 รอจัด'];
+const PA_MAX = 20 * 1024 * 1024;
+let paNote = '', paUploading = [];
+function resizeForWeb(file, max = 2000) {
+  return new Promise((res, rej) => {
+    const im = new Image(); im.onload = () => {
+      const k = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(im.src); c.toBlob(b => b ? res(b) : rej(new Error('resize')), 'image/jpeg', 0.85);
+    }; im.onerror = rej; im.src = URL.createObjectURL(file);
+  });
+}
+async function paSendFiles(files) {
+  const note = ($('#paNote')?.value || paNote).trim();
+  for (const f of files) {
+    const job = { name: f.name, state: 'กำลังส่ง…' }; paUploading.push(job); render();
+    try {
+      let blob = f, name = f.name;
+      if (/^image\/(jpeg|png|heic|heif|webp)/.test(f.type) || /\.(heic|heif)$/i.test(f.name)) { try { blob = await resizeForWeb(f); name = f.name.replace(/\.[^.]+$/, '') + '.jpg'; } catch (e) { blob = f; } }
+      if (blob.size > PA_MAX) throw new Error('ไฟล์ใหญ่เกิน 20 MB ใช้ลิงก์ Drive แทน');
+      const d = todayISO();
+      const file = await driveUpload(PA_QUEUE_PATH, `${d} ${name}`, blob, { description: note });
+      put('pa', { id: uid(), kind: 'file', name, mime: blob.type, size: blob.size, driveId: file.id, url: file.url, note, status: 'queued', stds: [], date: d, createdAt: Date.now() });
+      job.state = '✓ ส่งแล้ว';
+    } catch (e) { job.state = '✕ ' + (e.message || 'ส่งไม่สำเร็จ'); }
+    render();
+  }
+  setTimeout(() => { paUploading = paUploading.filter(j => !j.state.startsWith('✓')); render(); }, 2500);
+}
+function paAddLink() {
+  const url = ($('#paLink')?.value || '').trim(); if (!/^https?:\/\//.test(url)) { toast('วางลิงก์ที่ขึ้นต้นด้วย https://'); return; }
+  const note = ($('#paNote')?.value || '').trim();
+  put('pa', { id: uid(), kind: 'link', name: url.replace(/^https?:\/\//, '').slice(0, 60), url, note, status: 'queued', stds: [], date: todayISO(), createdAt: Date.now() });
+  toast('เพิ่มลิงก์เข้าคิวแล้ว');
+}
+function renderPA() {
+  const items = Object.values(db.pa).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const queued = items.filter(x => x.status !== 'filed'), filed = items.filter(x => x.status === 'filed');
+  const cnt = Array(15).fill(0); filed.forEach(x => (x.stds || []).forEach(n => { if (n >= 1 && n <= 15) cnt[n - 1]++; }));
+  const ready = !!driveCfg?.url;
+  return `
+    <div class="daynav"><div class="lbl"><b>ส่งงาน PA</b><span>ส่งรูปหรือเอกสารเข้าคิว แล้วให้ Claude จัดเข้าหัวข้อและลงเว็บ PA-Online</span></div></div>
+    ${ready ? '' : `<div class="empty" style="margin-bottom:10px">${cloud ? 'ยังไม่ได้เชื่อม Google Drive — รอ Claude ตั้งค่าให้' : 'ล็อกอินก่อน (⚙️ ตั้งค่า) จึงจะส่งไฟล์ได้'}</div>`}
+    <div class="pabox">
+      <label class="f">หมายเหตุ (ไม่ใส่ก็ได้) เช่น ทำอะไร ที่ไหน หรือ "ข้อ 14"<input id="paNote" value="${esc(paNote)}" placeholder="เช่น ประชุม PLC กลุ่มสาระคณิต 5 พ.ย."></label>
+      <div class="row">
+        <label class="btn primary ${ready ? '' : 'dis'}">📷 เลือกรูป<input type="file" id="paImg" accept="image/*" multiple hidden ${ready ? '' : 'disabled'}></label>
+        <label class="btn ${ready ? '' : 'dis'}">📄 เลือกไฟล์<input type="file" id="paFile" multiple hidden ${ready ? '' : 'disabled'}></label>
+      </div>
+      <div class="row"><input id="paLink" placeholder="หรือวางลิงก์ Drive / YouTube" style="flex:1;min-width:0;font-size:21px;border:1.5px solid var(--line);border-radius:12px;padding:4px 12px"><button class="btn" id="paLinkBtn">+ ลิงก์</button></div>
+      ${paUploading.map(j => `<div class="hint">${esc(j.name)} — ${esc(j.state)}</div>`).join('')}
+    </div>
+    <div class="row" style="margin:12px 0 4px">
+      <h2 style="margin:0" class="grow">รอจัด <span class="cnt">${queued.length}</span></h2>
+      ${queued.length ? `<button class="btn green" id="paToClaude">📨 ส่งให้ Claude จัดแฟ้ม</button>` : ''}
+    </div>
+    ${queued.length ? queued.map(paItemHTML).join('') : '<div class="hint">ไม่มีไฟล์รอจัด</div>'}
+    <h2>หลักฐานแยกตามหัวข้อ <span class="cnt">${filed.length} ชิ้น</span></h2>
+    <div class="stdgrid">${PA_STD.map((t, i) => `<div class="std ${cnt[i] ? '' : 'none'}"><b>${i + 1}</b><span>${esc(t)}</span><em>${cnt[i] || 'ยังไม่มี'}</em></div>`).join('')}</div>
+    ${filed.length ? `<h2>จัดแล้วล่าสุด</h2>${filed.slice(0, 20).map(paItemHTML).join('')}` : ''}`;
+}
+function paItemHTML(x) {
+  const icon = x.kind === 'link' ? '🔗' : /^image\//.test(x.mime || '') ? '🖼️' : '📄';
+  return `<div class="item"><div class="time" style="font-size:26px">${icon}</div><div class="rail" style="background:${x.status === 'filed' ? 'var(--green)' : '#e0b400'}"></div>
+    <div class="main" data-pa="${x.id}"><div class="title" style="font-size:21px">${esc(x.name)}</div>
+      <div class="sub">${x.status === 'filed' ? `<span class="tag" style="background:var(--green)">ข้อ ${(x.stds || []).join(', ')}</span>` : '<span class="tag" style="background:#c99a00">รอจัด</span>'}${esc(thDate(x.date))}${x.note ? ' · ' + esc(x.note) : ''}</div></div></div>`;
+}
+function bindPA() {
+  const n = $('#paNote'); if (n) n.oninput = () => { paNote = n.value; };
+  if ($('#paImg')) $('#paImg').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) paSendFiles(f); };
+  if ($('#paFile')) $('#paFile').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) paSendFiles(f); };
+  if ($('#paLinkBtn')) $('#paLinkBtn').onclick = paAddLink;
+  if ($('#paToClaude')) $('#paToClaude').onclick = async () => {
+    const t = 'จัดแฟ้ม PA';
+    try { await navigator.clipboard.writeText(t); } catch (e) {}
+    alert(`คัดลอกคำว่า "${t}" แล้ว\n\nเปิดแชทกับ Claude แล้ววาง (หรือพิมพ์ "${t}") ได้เลย Claude จะอ่านไฟล์ในคิว จัดเข้าหัวข้อ 1–15 ย้ายไฟล์ใน Drive และลงเว็บ PA-Online ให้`);
+    window.open('https://claude.ai/new?q=' + encodeURIComponent(t), '_blank');
+  };
+  document.querySelectorAll('[data-pa]').forEach(el => el.onclick = () => {
+    const x = db.pa[el.dataset.pa];
+    openSheet(`<h3 style="font-size:26px">${esc(x.name)}</h3><div class="hint">${thLong(x.date)}${x.note ? ' · ' + esc(x.note) : ''}</div>
+      ${x.status === 'filed' ? `<div>จัดเข้า: ${(x.stds || []).map(n => `ข้อ ${n} ${esc(PA_STD[n - 1])}`).join('<br>')}</div>` : ''}
+      <div class="row"><a class="btn primary" href="${esc(x.url)}" target="_blank" rel="noopener">เปิดไฟล์</a><span class="grow"></span>
+      <button class="btn danger" id="paDel">ลบออกจากคิว</button><button class="btn ghost" id="paClose">ปิด</button></div>`);
+    $('#paClose').onclick = closeSheet;
+    $('#paDel').onclick = async () => {
+      if (!confirm('ลบรายการนี้? ไฟล์ใน Drive จะถูกย้ายไปถังขยะด้วย')) return;
+      if (x.driveId) driveCall({ action: 'trash', id: x.driveId }).catch(() => {});
+      del('pa', x.id); closeSheet();
+    };
+  });
+}
+function sendTaskToPA(title, date) { paNote = `${title} (${thDate(date)})`; tab = 'pa'; closeSheet(); render(); }
+
 /* ====================== หน้าจอ ====================== */
 let tab = 'day', viewDate = todayISO();
 function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  $('#btnAdd').style.display = tab === 'pa' ? 'none' : '';
   const t = todayISO();
   const pending = itemsOn(t).filter(x => !x.done && !x.skip).length + overdueTasks(t).length;
   const inboxN = inboxTasks().length;
@@ -332,8 +435,8 @@ function render() {
   $('.tabs [data-tab="inbox"]').innerHTML = `กล่องงาน${inboxN ? `<span class="badge" style="background:#8a85a3">${inboxN}</span>` : ''}`;
   try { if (pending && navigator.setAppBadge) navigator.setAppBadge(pending).catch(() => {}); else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch (e) {}
   const q0 = $('#qIn'), keep = q0 ? { v: q0.value, f: document.activeElement === q0, s: q0.selectionStart } : null;
-  $('#main').innerHTML = ({ day: renderDay, week: renderWeek, inbox: renderInbox, tt: renderTT })[tab]();
-  bind();
+  $('#main').innerHTML = ({ day: renderDay, week: renderWeek, inbox: renderInbox, tt: renderTT, pa: renderPA })[tab]();
+  bind(); if (tab === 'pa') bindPA();
   const q1 = $('#qIn'); if (q1 && keep) { q1.value = keep.v; if (keep.f) { q1.focus(); try { q1.setSelectionRange(keep.s, keep.s); } catch (e) {} } }
   if (openRerender && $('#dlg').open) openRerender();
 }
@@ -499,6 +602,7 @@ function showTaskForm(t, newDate) {
     <div class="subs" id="tSubs"></div>
     <div class="row"><input id="tNewSub" placeholder="+ เพิ่มงานย่อย" style="flex:1;font-size:21px;border:1.5px solid var(--line);border-radius:10px;padding:2px 10px;min-width:0"><button class="btn sm" id="tAddSub">เพิ่ม</button></div>
     <label class="f">โน้ต<textarea id="tNote" rows="2">${esc(t.note || '')}</textarea></label>
+    ${isNew ? '' : '<button class="btn" id="tPA" style="align-self:flex-start">📎 ส่งหลักฐานของงานนี้เข้า PA</button>'}
     ${isNew || !t.date ? '' : `<details id="tRepDet"><summary style="cursor:pointer;color:var(--ink)">🔁 ทำเป็นงานซ้ำ</summary>
       <div class="chips" id="tDays" style="margin-top:6px"></div><div class="hint">งานนี้จะกลายเป็นงานซ้ำตามวันที่เลือก เริ่มตั้งแต่วันที่ของงาน</div></details>`}
     ${isNew ? `<details id="tRepDet"><summary style="cursor:pointer;color:var(--ink)">🔁 ทำซ้ำทุกสัปดาห์</summary><div class="chips" id="tDays" style="margin-top:6px"></div></details>` : ''}
@@ -517,6 +621,7 @@ function showTaskForm(t, newDate) {
   $('#tAddSub').onclick = e => { e.preventDefault(); const v = $('#tNewSub').value.trim(); if (!v) return; subs.push({ t: v, done: false }); $('#tNewSub').value = ''; drawSubs(); };
   $('#tNewSub').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('#tAddSub').click(); } };
   $('#tCancel').onclick = closeSheet;
+  if (!isNew) $('#tPA').onclick = () => sendTaskToPA(t.title, t.date || todayISO());
   if (!isNew) $('#tDel').onclick = () => { if (confirm(`ลบงาน "${t.title}"?`)) { del('tasks', t.id); closeSheet(); } };
   $('#tSave').onclick = () => {
     const title = $('#tTitle').value.trim(); if (!title) { $('#tTitle').focus(); return; }
@@ -551,10 +656,11 @@ function showOccSheet(it) {
     <div class="row"><label class="f grow">เริ่ม<input id="oTime" type="time" value="${o.time ?? s0 ?? ''}"></label><label class="f grow">ถึง<input id="oEnd" type="time" value="${o.end ?? e0 ?? ''}"></label></div>
     <label class="f">โน้ตของวันนี้<textarea id="oNote" rows="2" placeholder="เช่น สอนถึงหน้า 45, สั่งการบ้านข้อ 1–10">${esc(o.note || '')}</textarea></label>
     <div class="row"><button class="btn ghost" id="oCancel">ปิด</button><span class="grow"></span>
-      <button class="btn" id="oAll">${r.source === 'tt' ? 'แก้ในตารางสอน' : 'แก้งานซ้ำทั้งชุด'}</button><button class="btn primary" id="oSave">บันทึกวันนี้</button></div>`);
+      <button class="btn" id="oPA">📎 PA</button><button class="btn" id="oAll">${r.source === 'tt' ? 'แก้ในตารางสอน' : 'แก้งานซ้ำทั้งชุด'}</button><button class="btn primary" id="oSave">บันทึกวันนี้</button></div>`);
   $('#oCancel').onclick = closeSheet;
   $('#oDone').onclick = () => { put('occ', { ...o, done: !o.done, doneAt: o.done ? null : todayISO() }); closeSheet(); };
   $('#oSkip').onclick = () => { put('occ', { ...o, skip: !o.skip }); closeSheet(); toast(o.skip ? 'ยกเลิกการงดแล้ว' : 'งดเฉพาะวันนี้แล้ว'); };
+  $('#oPA').onclick = () => sendTaskToPA(r.title, it.date);
   $('#oAll').onclick = () => r.source === 'tt' ? showTTForm(r.days[0], +r.p1, r.id) : showRuleForm(r);
   $('#oSave').onclick = () => {
     const tm = $('#oTime').value || null, en = $('#oEnd').value || null;
@@ -697,6 +803,55 @@ function renderCloudBox() {
   };
 }
 
+/* ====================== Google Drive (ผ่าน Apps Script ของบัญชีนี้) ======================
+   ที่อยู่ประตู (url) และรหัสลับ (key) เก็บใน Firebase: users/{uid}/meta/drive — อ่านได้เฉพาะบัญชีที่ล็อกอิน
+   ไม่ใส่ไว้ในโค้ดนี้ เพราะโค้ดแอปเปิดสาธารณะบน GitHub */
+let driveCfg = null;
+async function loadDriveCfg() {
+  if (!cloud) return null;
+  try { const s = await cloud.fs.getDoc(cloud.fs.doc(cloud.fsdb, 'users', cloud.uid, 'meta', 'drive')); driveCfg = s.exists() ? s.data() : null; } catch (e) { console.warn(e); }
+  return driveCfg;
+}
+async function driveCall(body) {
+  if (!driveCfg) await loadDriveCfg();
+  if (!driveCfg?.url) throw new Error('ยังไม่ได้เชื่อม Google Drive');
+  const r = await fetch(driveCfg.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...body, key: driveCfg.key }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'drive-error');
+  return j;
+}
+const blobToB64 = b => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(b); });
+const dataUrlToBlob = u => { const [h, d] = u.split(','); const mime = h.match(/:(.*?);/)[1]; const bin = atob(d); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: mime }); };
+async function driveUpload(path, name, blob, opts = {}) {
+  return (await driveCall({ action: 'upload', path, name, mime: blob.type || 'application/octet-stream', data: await blobToB64(blob), ...opts })).file;
+}
+// รูปเล็ก (ไอคอน) ที่เก็บใน Drive: จำไว้ในเครื่องเพื่อแสดงผลเร็วและใช้ออฟไลน์ได้
+const imgCacheKey = id => 'drive-img-' + id;
+const imgPending = new Set();
+function driveImg(id) {
+  let v = null; try { v = localStorage.getItem(imgCacheKey(id)); } catch (e) {}
+  if (v) return v;
+  if (!imgPending.has(id) && cloud) {
+    imgPending.add(id);
+    driveCall({ action: 'get', id }).then(j => { try { localStorage.setItem(imgCacheKey(id), `data:${j.file.mime};base64,${j.data}`); } catch (e) {} render(); }).catch(() => {}).finally(() => setTimeout(() => imgPending.delete(id), 30000));
+  }
+  return null;
+}
+// สำรองข้อมูลวันละครั้ง: ไฟล์ .json ลงโฟลเดอร์ [ชื่อแอป]/สำรองข้อมูล/[ปี พ.ศ.]
+async function dailyBackup(appName, getData) {
+  if (!cloud) return;
+  const today = todayISO();
+  const ref = cloud.fs.doc(cloud.fsdb, 'users', cloud.uid, 'meta', 'drive_backups');
+  try {
+    const s = await cloud.fs.getDoc(ref);
+    if (s.exists() && s.data()[appName] === today) return;
+    if (!(await loadDriveCfg())?.url) return;
+    const blob = new Blob([JSON.stringify({ app: appName, date: today, data: getData() }, null, 1)], { type: 'application/json' });
+    await driveUpload([appName, 'สำรองข้อมูล', String(+today.slice(0, 4) + 543)], `${appName}-สำรอง-${today}.json`, blob, { replace: true });
+    await cloud.fs.setDoc(ref, { [appName]: today }, { merge: true });
+  } catch (e) { console.warn('backup', e); }
+}
+
 /* ====================== Firebase ====================== */
 let fbApi = null;
 async function loadFirebase() {
@@ -720,7 +875,8 @@ function startCloud(user) {
   loadFrom(MIRROR_KEY);
   const seen = new Set();
   const done = () => {
-    if (seen.size < 4) return;
+    if (seen.size < 5) return;
+    if (!startCloud.backed) { startCloud.backed = true; loadDriveCfg().then(() => { render(); setTimeout(() => dailyBackup('วันนี้', () => { const { ext, ...mine } = db; return mine; }), 4000); }); }
     if (localData && (Object.keys(localData.tasks || {}).length || Object.keys(localData.rules || {}).length) && !localStorage.getItem('today-migrated-' + user.uid)) {
       localStorage.setItem('today-migrated-' + user.uid, '1');
       if (confirm('พบงานที่บันทึกในเครื่องนี้ อัปโหลดขึ้นคลาวด์ไหม?')) for (const col of ['tasks', 'rules', 'occ']) Object.values(localData[col] || {}).forEach(o => put(col, o, true));
@@ -728,7 +884,7 @@ function startCloud(user) {
   };
   let t = null; const soon = () => { clearTimeout(t); t = setTimeout(() => { saveSnapshot(); render(); }, 60); };
   const mark = (k, snap) => { seen.add(k); syncState = snap.metadata.fromCache ? 'offline' : (snap.metadata.hasPendingWrites ? 'pending' : 'synced'); showSync(); soon(); done(); };
-  for (const col of ['tasks', 'rules', 'occ']) {
+  for (const col of ['tasks', 'rules', 'occ', 'pa']) {
     fs.onSnapshot(fs.collection(fsdb, 'users', user.uid, COL[col]), { includeMetadataChanges: true }, snap => {
       const o = {}; snap.forEach(d => o[d.id] = d.data()); db[col] = o; mark(col, snap);
     }, e => { syncState = 'error'; showSync(); toast('ซิงก์ผิดพลาด: ' + e.code); });
@@ -759,7 +915,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.se
 let lastDay = todayISO();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (todayISO() !== lastDay) { lastDay = todayISO(); viewDate = lastDay; } render(); } });
 setInterval(() => { if (tab === 'day' && !$('#dlg').open && document.activeElement?.id !== 'qIn') render(); }, 60000);
-window.__today = { db, render, importTimetable, parseQuick, put, del };
+window.__today = { db, render, importTimetable, parseQuick, put, del, driveCall, setDrive: async (url, key) => { await cloud.fs.setDoc(cloud.fs.doc(cloud.fsdb, 'users', cloud.uid, 'meta', 'drive'), { url, key }); driveCfg = { url, key }; render(); return 'ok'; } };
 </script>
 </body>
 </html>
