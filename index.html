@@ -129,6 +129,18 @@ label.f input,label.f select,label.f textarea{color:var(--text);font-size:23px;b
 .std{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;flex-direction:column;line-height:1.35}
 .std b{font-size:24px;color:var(--ink)} .std span{font-size:17px;flex:1} .std em{font-style:normal;font-weight:700;color:var(--green)}
 .std.none{border-style:dashed;background:#fff7f7} .std.none em{color:var(--now);font-weight:400}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:6px}
+.steps div{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:4px 8px;line-height:1.3;color:var(--mute)}
+.steps div b{display:block;font-size:24px;color:#b9b3d3} .steps div span{font-size:15px}
+.steps div.on b{color:var(--ink)} .steps div.on{border-color:#cfc6f0}
+.review{background:#fff;border:2px solid #f3c7a8;border-radius:16px;padding:10px 12px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
+.rvhead{display:flex;gap:10px;align-items:flex-start}
+.rvthumb{width:96px;height:96px;border-radius:10px;object-fit:cover;flex:none;background:#f0eef8}
+.rvthumb.ph{display:grid;place-items:center;font-size:36px}
+.stdpick{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px}
+.stdpick button{border:1.5px solid var(--line);background:#fff;border-radius:10px;height:36px;font-size:19px;cursor:pointer;padding:0}
+.stdpick button.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+.review textarea{font-size:20px}
 .fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));border-radius:999px;padding:10px 24px;font-size:22px;box-shadow:0 8px 22px -6px rgba(39,27,87,.6);z-index:4}
 .toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink2);color:#fff;border-radius:999px;padding:6px 22px;z-index:99;font-size:21px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
@@ -364,14 +376,35 @@ function paAddLink() {
   put('pa', { id: uid(), kind: 'link', name: url.replace(/^https?:\/\//, '').slice(0, 60), url, note, status: 'queued', stds: [], date: todayISO(), createdAt: Date.now() });
   toast('เพิ่มลิงก์เข้าคิวแล้ว');
 }
+// สถานะรายการ: queued (รอ Claude จัด) → proposed (Claude เสนอแล้ว รอครูตรวจ) → approved (ครูอนุมัติ รอขึ้นเว็บ) → filed (ขึ้นเว็บแล้ว)
+const PA_STATUS = { queued: ['รอ Claude จัด', '#c99a00'], proposed: ['รอตรวจ', '#d9480f'], approved: ['อนุมัติแล้ว รอขึ้นเว็บ', '#2f5bd3'], filed: ['ขึ้นเว็บแล้ว', '#1a8a5a'] };
+const paThumbs = new Map();
+function paThumb(x) {
+  if (x.kind !== 'file' || !/^image\//.test(x.mime || '') || !x.driveId) return null;
+  if (paThumbs.has(x.driveId)) return paThumbs.get(x.driveId);
+  paThumbs.set(x.driveId, null);
+  driveCall({ action: 'get', id: x.driveId }).then(j => { paThumbs.set(x.driveId, `data:${j.file.mime};base64,${j.data}`); if (tab === 'pa') render(); }).catch(() => {});
+  return null;
+}
 function renderPA() {
   const items = Object.values(db.pa).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  const queued = items.filter(x => x.status !== 'filed'), filed = items.filter(x => x.status === 'filed');
+  const by = st => items.filter(x => (x.status || 'queued') === st);
+  const queued = by('queued'), proposed = by('proposed'), approved = by('approved'), filed = by('filed');
   const cnt = Array(15).fill(0); filed.forEach(x => (x.stds || []).forEach(n => { if (n >= 1 && n <= 15) cnt[n - 1]++; }));
   const ready = !!driveCfg?.url;
   return `
-    <div class="daynav"><div class="lbl"><b>ส่งงาน PA</b><span>ส่งรูปหรือเอกสารเข้าคิว แล้วให้ Claude จัดเข้าหัวข้อและลงเว็บ PA-Online</span></div></div>
-    ${ready ? '' : `<div class="empty" style="margin-bottom:10px">${cloud ? 'ยังไม่ได้เชื่อม Google Drive — รอ Claude ตั้งค่าให้' : 'ล็อกอินก่อน (⚙️ ตั้งค่า) จึงจะส่งไฟล์ได้'}</div>`}
+    <div class="daynav"><div class="lbl"><b>ส่งงาน PA</b><span>ส่งไฟล์ → Claude จัดหัวข้อ → คุณตรวจ → Claude ขึ้นเว็บ PA-Online</span></div></div>
+    <div class="steps">${[['ส่งไฟล์', queued.length], ['รอตรวจ', proposed.length], ['รอขึ้นเว็บ', approved.length], ['ขึ้นเว็บแล้ว', filed.length]].map(([t, n], i) => `<div class="${n ? 'on' : ''}"><b>${n}</b><span>${i + 1}. ${t}</span></div>`).join('')}</div>
+    ${ready ? '' : `<div class="empty" style="margin-bottom:10px">${cloud ? 'ยังไม่ได้เชื่อม Google Drive' : 'ล็อกอินก่อน (⚙️ ตั้งค่า) จึงจะส่งไฟล์ได้'}</div>`}
+
+    ${proposed.length ? `<div class="row" style="margin:14px 0 4px"><h2 style="margin:0;color:#d9480f" class="grow">รอคุณตรวจ <span class="cnt">${proposed.length}</span></h2><button class="btn green" id="paApproveAll">✓ อนุมัติทั้งหมด</button></div>
+      <div class="hint" style="margin-bottom:6px">Claude จัดหัวข้อและเขียนคำอธิบายไว้ให้ แตะหัวข้อเพื่อเปลี่ยน แก้คำอธิบายได้ แล้วกดอนุมัติ</div>
+      ${proposed.map(paReviewHTML).join('')}` : ''}
+
+    ${approved.length ? `<div class="row" style="margin:14px 0 4px"><h2 style="margin:0;color:var(--ink)" class="grow">อนุมัติแล้ว รอขึ้นเว็บ <span class="cnt">${approved.length}</span></h2><button class="btn primary" id="paPublish">🌐 ให้ Claude ขึ้นเว็บ</button></div>
+      ${approved.map(paItemHTML).join('')}` : ''}
+
+    <h2 style="margin-top:16px">ส่งไฟล์เข้าคิว</h2>
     <div class="pabox">
       <label class="f">หมายเหตุ (ไม่ใส่ก็ได้) เช่น ทำอะไร ที่ไหน หรือ "ข้อ 14"<input id="paNote" value="${esc(paNote)}" placeholder="เช่น ประชุม PLC กลุ่มสาระคณิต 5 พ.ย."></label>
       <div class="row">
@@ -386,41 +419,97 @@ function renderPA() {
       ${queued.length ? `<button class="btn green" id="paToClaude">📨 ส่งให้ Claude จัดแฟ้ม</button>` : ''}
     </div>
     ${queued.length ? queued.map(paItemHTML).join('') : '<div class="hint">ไม่มีไฟล์รอจัด</div>'}
-    <h2>หลักฐานแยกตามหัวข้อ <span class="cnt">${filed.length} ชิ้น</span></h2>
+
+    <h2>หลักฐานบนเว็บ แยกตามหัวข้อ <span class="cnt">${filed.length} ชิ้น</span></h2>
     <div class="stdgrid">${PA_STD.map((t, i) => `<div class="std ${cnt[i] ? '' : 'none'}"><b>${i + 1}</b><span>${esc(t)}</span><em>${cnt[i] || 'ยังไม่มี'}</em></div>`).join('')}</div>
-    ${filed.length ? `<h2>จัดแล้วล่าสุด</h2>${filed.slice(0, 20).map(paItemHTML).join('')}` : ''}`;
+    ${filed.length ? `<h2>ขึ้นเว็บแล้วล่าสุด</h2>${filed.slice(0, 20).map(paItemHTML).join('')}` : ''}`;
+}
+function paReviewHTML(x) {
+  const th = paThumb(x), stds = x.stds || [];
+  return `<div class="review" data-rv="${x.id}">
+    <div class="rvhead">
+      ${th ? `<img class="rvthumb" src="${th}" alt="">` : `<div class="rvthumb ph">${x.kind === 'link' ? '🔗' : /^image\//.test(x.mime || '') ? '🖼️' : '📄'}</div>`}
+      <div style="flex:1;min-width:0"><div class="title" style="font-size:21px;word-break:break-all">${esc(x.name)}</div>
+        <div class="hint">${esc(thDate(x.date))}${x.note ? ' · หมายเหตุ: ' + esc(x.note) : ''} · <a href="${esc(x.url)}" target="_blank" rel="noopener">เปิดไฟล์</a></div></div>
+    </div>
+    <div class="hint" style="margin-top:4px">หัวข้อที่ Claude เสนอ${x.reason ? ` — ${esc(x.reason)}` : ''}</div>
+    <div class="stdpick">${PA_STD.map((t, i) => `<button type="button" class="${stds.includes(i + 1) ? 'on' : ''}" data-sp="${i + 1}" title="${esc(t)}">${i + 1}</button>`).join('')}</div>
+    <div class="hint">${stds.map(n => `ข้อ ${n} ${esc(PA_STD[n - 1])}`).join(' · ') || 'ยังไม่ได้เลือกหัวข้อ'}</div>
+    <label class="f">คำอธิบายบนเว็บ<textarea data-cap rows="3">${esc(x.caption || '')}</textarea></label>
+    <label style="display:flex;gap:8px;align-items:center;font-size:19px"><input type="checkbox" data-pub ${x.publish === false ? '' : 'checked'}> ลงเว็บ (ไม่ติ๊ก = เก็บใน Drive อย่างเดียว เช่น เอกสารที่มีรายชื่อนักเรียน)</label>
+    ${x.privacy ? `<div class="hint" style="color:var(--now)">⚠️ ${esc(x.privacy)}</div>` : ''}
+    <div class="row"><button class="btn green" data-ok>✓ อนุมัติ</button><button class="btn" data-back>↩ ให้ Claude จัดใหม่</button><span class="grow"></span><button class="btn ghost danger" data-rm>ลบ</button></div>
+  </div>`;
 }
 function paItemHTML(x) {
   const icon = x.kind === 'link' ? '🔗' : /^image\//.test(x.mime || '') ? '🖼️' : '📄';
-  return `<div class="item"><div class="time" style="font-size:26px">${icon}</div><div class="rail" style="background:${x.status === 'filed' ? 'var(--green)' : '#e0b400'}"></div>
+  const [label, color] = PA_STATUS[x.status || 'queued'] || PA_STATUS.queued;
+  return `<div class="item"><div class="time" style="font-size:26px">${icon}</div><div class="rail" style="background:${color}"></div>
     <div class="main" data-pa="${x.id}"><div class="title" style="font-size:21px">${esc(x.name)}</div>
-      <div class="sub">${x.status === 'filed' ? `<span class="tag" style="background:var(--green)">ข้อ ${(x.stds || []).join(', ')}</span>` : '<span class="tag" style="background:#c99a00">รอจัด</span>'}${esc(thDate(x.date))}${x.note ? ' · ' + esc(x.note) : ''}</div></div></div>`;
+      <div class="sub"><span class="tag" style="background:${color}">${label}</span>${(x.stds || []).length ? `ข้อ ${(x.stds || []).join(', ')} · ` : ''}${esc(thDate(x.date))}${x.publish === false ? ' · ไม่ลงเว็บ' : ''}${x.note ? ' · ' + esc(x.note) : ''}</div></div></div>`;
+}
+function readReview(card, x) {
+  return { ...x, caption: card.querySelector('[data-cap]').value.trim(), publish: card.querySelector('[data-pub]').checked };
 }
 function bindPA() {
   const n = $('#paNote'); if (n) n.oninput = () => { paNote = n.value; };
   if ($('#paImg')) $('#paImg').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) paSendFiles(f); };
   if ($('#paFile')) $('#paFile').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) paSendFiles(f); };
   if ($('#paLinkBtn')) $('#paLinkBtn').onclick = paAddLink;
-  if ($('#paToClaude')) $('#paToClaude').onclick = async () => {
-    const t = 'จัดแฟ้ม PA';
+  const askClaude = async (t, what) => {
     try { await navigator.clipboard.writeText(t); } catch (e) {}
-    alert(`คัดลอกคำว่า "${t}" แล้ว\n\nเปิดแชทกับ Claude แล้ววาง (หรือพิมพ์ "${t}") ได้เลย Claude จะอ่านไฟล์ในคิว จัดเข้าหัวข้อ 1–15 ย้ายไฟล์ใน Drive และลงเว็บ PA-Online ให้`);
+    alert(`คัดลอกคำว่า "${t}" แล้ว\n\nเปิดแชทกับ Claude แล้ววาง (หรือพิมพ์ "${t}") ได้เลย\n${what}`);
     window.open('https://claude.ai/new?q=' + encodeURIComponent(t), '_blank');
   };
+  if ($('#paToClaude')) $('#paToClaude').onclick = () => askClaude('จัดแฟ้ม PA', 'Claude จะอ่านไฟล์ในคิว จัดหัวข้อ 1–15 และเขียนคำอธิบาย แล้วส่งกลับมาให้ตรวจในหน้านี้');
+  if ($('#paPublish')) $('#paPublish').onclick = () => askClaude('ขึ้นเว็บ PA', 'Claude จะย้ายไฟล์ใน Drive เข้าโฟลเดอร์หัวข้อ และลงเว็บ PA-Online เฉพาะรายการที่อนุมัติแล้ว');
+  if ($('#paApproveAll')) $('#paApproveAll').onclick = () => {
+    const cards = [...document.querySelectorAll('[data-rv]')];
+    const bad = cards.filter(c => !(db.pa[c.dataset.rv].stds || []).length);
+    if (bad.length) { toast(`มี ${bad.length} รายการที่ยังไม่ได้เลือกหัวข้อ`); return; }
+    cards.forEach(c => { const x = db.pa[c.dataset.rv]; put('pa', { ...readReview(c, x), status: 'approved', approvedAt: Date.now() }, true); });
+    render(); toast(`อนุมัติ ${cards.length} รายการแล้ว`);
+  };
+  document.querySelectorAll('[data-rv]').forEach(card => {
+    const id = card.dataset.rv;
+    card.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => {
+      const x = readReview(card, db.pa[id]), k = +b.dataset.sp, s = new Set(x.stds || []);
+      s.has(k) ? s.delete(k) : s.add(k); put('pa', { ...x, stds: [...s].sort((a, b) => a - b) });
+    });
+    card.querySelector('[data-cap]').onchange = () => put('pa', readReview(card, db.pa[id]), true);
+    card.querySelector('[data-pub]').onchange = () => put('pa', readReview(card, db.pa[id]), true);
+    card.querySelector('[data-ok]').onclick = () => {
+      const x = readReview(card, db.pa[id]); if (!(x.stds || []).length) { toast('เลือกหัวข้ออย่างน้อย 1 ข้อ'); return; }
+      put('pa', { ...x, status: 'approved', approvedAt: Date.now() }); toast('อนุมัติแล้ว');
+    };
+    card.querySelector('[data-back]').onclick = () => {
+      const why = prompt('บอก Claude ว่าควรจัดใหม่อย่างไร (เช่น "เป็นงาน PLC ข้อ 14")', '');
+      if (why === null) return;
+      const x = readReview(card, db.pa[id]); put('pa', { ...x, status: 'queued', note: [x.note, why].filter(Boolean).join(' / ') });
+    };
+    card.querySelector('[data-rm]').onclick = () => {
+      if (!confirm('ลบรายการนี้? ไฟล์ใน Drive จะถูกย้ายไปถังขยะด้วย')) return;
+      const x = db.pa[id]; if (x.driveId) driveCall({ action: 'trash', id: x.driveId }).catch(() => {}); del('pa', id);
+    };
+  });
   document.querySelectorAll('[data-pa]').forEach(el => el.onclick = () => {
     const x = db.pa[el.dataset.pa];
-    openSheet(`<h3 style="font-size:26px">${esc(x.name)}</h3><div class="hint">${thLong(x.date)}${x.note ? ' · ' + esc(x.note) : ''}</div>
-      ${x.status === 'filed' ? `<div>จัดเข้า: ${(x.stds || []).map(n => `ข้อ ${n} ${esc(PA_STD[n - 1])}`).join('<br>')}</div>` : ''}
-      <div class="row"><a class="btn primary" href="${esc(x.url)}" target="_blank" rel="noopener">เปิดไฟล์</a><span class="grow"></span>
-      <button class="btn danger" id="paDel">ลบออกจากคิว</button><button class="btn ghost" id="paClose">ปิด</button></div>`);
+    openSheet(`<h3 style="font-size:26px;word-break:break-all">${esc(x.name)}</h3><div class="hint">${thLong(x.date)}${x.note ? ' · ' + esc(x.note) : ''}</div>
+      ${(x.stds || []).length ? `<div>หัวข้อ: ${(x.stds || []).map(n => `ข้อ ${n} ${esc(PA_STD[n - 1])}`).join('<br>')}</div>` : ''}
+      ${x.caption ? `<div class="hint">คำอธิบาย: ${esc(x.caption)}</div>` : ''}
+      <div class="row"><a class="btn primary" href="${esc(x.url)}" target="_blank" rel="noopener">เปิดไฟล์</a>
+      ${x.status === 'approved' ? '<button class="btn" id="paUnapprove">↩ กลับไปตรวจใหม่</button>' : ''}<span class="grow"></span>
+      <button class="btn danger" id="paDel">ลบ</button><button class="btn ghost" id="paClose">ปิด</button></div>`);
     $('#paClose').onclick = closeSheet;
-    $('#paDel').onclick = async () => {
+    if ($('#paUnapprove')) $('#paUnapprove').onclick = () => { put('pa', { ...x, status: 'proposed' }); closeSheet(); };
+    $('#paDel').onclick = () => {
       if (!confirm('ลบรายการนี้? ไฟล์ใน Drive จะถูกย้ายไปถังขยะด้วย')) return;
       if (x.driveId) driveCall({ action: 'trash', id: x.driveId }).catch(() => {});
       del('pa', x.id); closeSheet();
     };
   });
 }
+
 function sendTaskToPA(title, date) { paNote = `${title} (${thDate(date)})`; tab = 'pa'; closeSheet(); render(); }
 
 /* ====================== หน้าจอ ====================== */
