@@ -16,14 +16,14 @@
 @font-face{font-family:"TH Sarabun New";src:url(fonts/thsarabunnew_bold-webfont.ttf) format("truetype");font-weight:700}
 :root{--ink:#3a2a78;--ink2:#271b57;--text:#1f1b33;--mute:#6c6788;--line:#e0dcef;--paper:#f5f4fa;--now:#e5484d;--green:#1a8a5a}
 *{box-sizing:border-box}
-html,body{overflow-x:hidden;margin:0;color:var(--text);font-family:"TH Sarabun New",sans-serif;font-size:21px;line-height:1.3;-webkit-text-size-adjust:100%;background:var(--paper)}
+html,body{overflow-x:hidden;margin:0;color:var(--text);font-family:"TH Sarabun New",sans-serif;font-size:21px;line-height:1.5;-webkit-text-size-adjust:100%;background:var(--paper)}
 body{min-height:100vh}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid #a99cf0;outline-offset:2px}
 header{position:sticky;top:0;z-index:5;background:var(--ink);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;box-shadow:0 2px 0 var(--ink2)}
 .hrow1{display:flex;align-items:center;gap:10px}
 header img{width:40px;height:40px;border-radius:10px;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
-header h1{font-size:30px;margin:0;flex:1}
+header h1{font-size:30px;margin:0;flex:1;line-height:1.4;padding-top:4px}
 #sync{font-size:16px;white-space:nowrap;background:rgba(255,255,255,.12);border-radius:999px;padding:1px 12px}
 .iconbtn{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:12px;width:42px;height:40px;cursor:pointer;font-size:22px;display:grid;place-items:center}
 .tabs{display:flex;gap:2px;justify-content:center;margin-top:8px;overflow-x:auto}
@@ -34,7 +34,7 @@ main{max-width:860px;margin:0 auto;padding:14px 14px 120px}
 
 /* แถบเลือกวัน */
 .daynav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.daynav .lbl{flex:1;line-height:1.05}
+.daynav .lbl{flex:1;line-height:1.3;padding-top:4px}
 .daynav .lbl b{font-size:32px;color:var(--ink)} .daynav .lbl span{display:block;font-size:18px;color:var(--mute)}
 .navbtn{border:1.5px solid var(--line);background:#fff;border-radius:999px;min-width:40px;height:38px;font-size:22px;cursor:pointer;padding:0 12px}
 .progress{height:8px;background:var(--line);border-radius:8px;overflow:hidden;margin:2px 0 12px}
@@ -50,12 +50,12 @@ h2 .cnt{font-weight:400;font-size:18px}
 /* เส้นเวลา */
 .timeline{position:relative;padding-left:4px}
 .item{position:relative;display:flex;align-items:flex-start;gap:10px;padding:7px 10px 7px 0;border-bottom:1px solid var(--line);background:transparent}
-.item .time{flex:none;width:62px;text-align:right;font-size:19px;color:var(--mute);line-height:1.15;padding-top:3px}
+.item .time{flex:none;width:62px;text-align:right;font-size:19px;color:var(--mute);line-height:1.35;padding-top:3px}
 .item .time b{display:block;color:var(--text);font-size:22px}
 .item .rail{flex:none;width:6px;align-self:stretch;border-radius:4px}
 .item .main{flex:1;min-width:0;cursor:pointer}
-.item .title{font-size:23px;line-height:1.2;word-break:break-word}
-.item .sub{font-size:17px;color:var(--mute)}
+.item .title{font-size:23px;line-height:1.45;word-break:break-word}
+.item .sub{font-size:17px;color:var(--mute);line-height:1.6;margin-top:2px}
 .item .tag{display:inline-block;font-size:15px;border-radius:999px;padding:0 8px;color:#fff;vertical-align:2px;margin-right:4px}
 .item.done .title{text-decoration:line-through;color:var(--mute)}
 .item.skip .title{text-decoration:line-through;color:#a7a2bd}
@@ -71,8 +71,8 @@ h2 .cnt{font-weight:400;font-size:18px}
 .empty{background:#fff;border:2px dashed #cfc9e6;border-radius:16px;padding:22px 16px;text-align:center;color:var(--mute);font-size:21px}
 .ext{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:6px 12px;margin-top:6px;text-decoration:none;color:var(--text)}
 .ext .ic{font-size:24px}
-.ext .t{flex:1;font-size:21px;line-height:1.2}
-.ext .t small{display:block;color:var(--mute);font-size:17px}
+.ext .t{flex:1;font-size:21px;line-height:1.45}
+.ext .t small{display:block;color:var(--mute);font-size:17px;margin-top:2px}
 
 /* สัปดาห์ */
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
@@ -80,7 +80,7 @@ h2 .cnt{font-weight:400;font-size:18px}
 .wday.today{border-color:var(--ink);box-shadow:0 0 0 2px #d7d0f5}
 .wday .wh{display:flex;align-items:baseline;gap:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .wday .wh b{font-size:22px;color:var(--ink)} .wday .wh span{font-size:17px;color:var(--mute)}
-.wday .wi{font-size:17px;line-height:1.2;padding:2px 0 2px 6px;border-left:4px solid;margin:3px 0;word-break:break-word}
+.wday .wi{font-size:17px;line-height:1.45;padding:2px 0 2px 6px;border-left:4px solid;margin:3px 0;word-break:break-word}
 .wday .wi.done{text-decoration:line-through;color:var(--mute)}
 @media (max-width:760px){.week{grid-template-columns:1fr}.wday{min-height:0}}
 
@@ -88,9 +88,9 @@ h2 .cnt{font-weight:400;font-size:18px}
 .ttwrap{overflow-x:auto;background:#fff;border:1.5px solid var(--line);border-radius:14px}
 table.tt{border-collapse:collapse;width:100%;min-width:760px;font-size:18px}
 table.tt th,table.tt td{border:1px solid var(--line);padding:4px;text-align:center;vertical-align:middle}
-table.tt th{background:#f0eef8;color:var(--ink);font-weight:700;line-height:1.1}
+table.tt th{background:#f0eef8;color:var(--ink);font-weight:700;line-height:1.35}
 table.tt th small{display:block;font-weight:400;color:var(--mute);font-size:15px}
-table.tt td.cell{cursor:pointer;height:64px;line-height:1.15}
+table.tt td.cell{cursor:pointer;height:72px;line-height:1.35}
 table.tt td.cell:hover{background:#faf9fe}
 table.tt td.cell.f{color:#fff;font-weight:700}
 table.tt td.cell.f small{display:block;font-weight:400;opacity:.9;font-size:16px}
@@ -220,8 +220,9 @@ function loadFrom(key) {
 function saveSnapshot() { try { localStorage.setItem(cloud ? MIRROR_KEY : LOCAL_KEY, JSON.stringify(db)); } catch (e) { console.warn(e); } }
 const docRef = (col, id) => cloud.fs.doc(cloud.fsdb, 'users', cloud.uid, COL[col], id);
 function put(col, obj, quiet) {
-  db[col][obj.id] = obj; saveSnapshot(); if (!quiet) render();
-  if (cloud) cloud.fs.setDoc(docRef(col, obj.id), obj).catch(e => toast('ซิงก์ไม่สำเร็จ: ' + e.code));
+  db[col][obj.id] = obj;
+  if (cloud) cloud.fs.setDoc(docRef(col, obj.id), JSON.parse(JSON.stringify(obj))).catch(e => toast('ซิงก์ไม่สำเร็จ: ' + e.code));
+  saveSnapshot(); if (!quiet) render();
 }
 function del(col, id, quiet) {
   delete db[col][id]; saveSnapshot(); if (!quiet) render();
@@ -320,7 +321,7 @@ function render() {
   const inboxN = inboxTasks().length;
   $('.tabs [data-tab="day"]').innerHTML = `วันนี้${pending ? `<span class="badge">${pending}</span>` : ''}`;
   $('.tabs [data-tab="inbox"]').innerHTML = `กล่องงาน${inboxN ? `<span class="badge" style="background:#8a85a3">${inboxN}</span>` : ''}`;
-  if ('setAppBadge' in navigator) (pending ? navigator.setAppBadge(pending) : navigator.clearAppBadge()).catch(() => {});
+  try { if (pending && navigator.setAppBadge) navigator.setAppBadge(pending).catch(() => {}); else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch (e) {}
   const q0 = $('#qIn'), keep = q0 ? { v: q0.value, f: document.activeElement === q0, s: q0.selectionStart } : null;
   $('#main').innerHTML = ({ day: renderDay, week: renderWeek, inbox: renderInbox, tt: renderTT })[tab]();
   bind();
@@ -369,7 +370,7 @@ function renderDay() {
       <button class="navbtn" data-nav="1" aria-label="วันถัดไป">›</button>
     </div>
     <div class="progress" title="เสร็จ ${doneN}/${countable.length}"><i style="width:${countable.length ? doneN / countable.length * 100 : 0}%"></i></div>
-    <form class="quick" id="quick"><input id="qIn" placeholder="+ เพิ่มงาน เช่น ประชุม 13:00 พรุ่งนี้" autocomplete="off" enterkeyhint="done"><button class="btn primary">เพิ่ม</button></form>
+    <form class="quick" id="quick"><input id="qIn" placeholder="+ เพิ่มงาน เช่น ประชุม 13:00 พรุ่งนี้" autocomplete="off"><button class="btn primary">เพิ่ม</button></form>
     <div class="qhint">พิมพ์วัน/เวลาต่อท้ายได้ เช่น พรุ่งนี้, ศุกร์, 20 พ.ย., 13:00 · ! = สำคัญ · #หมวด</div>
     ${od.length ? `<h2 style="color:var(--now)">ค้างจากวันก่อน <span class="cnt">${od.length}</span></h2>${od.map(it => itemHTML(it, { overdue: true })).join('')}` : ''}
     ${timed.length ? `<h2>ตามเวลา <span class="cnt">${timed.filter(x => x.done).length}/${timed.filter(x => !x.skip).length}</span></h2><div class="timeline">${timedHTML}</div>` : ''}
@@ -400,7 +401,7 @@ function renderInbox() {
   const list = remember(inboxTasks().map(x => ({ kind: 'task', id: x.id, t: x, title: x.title, cat: x.cat, important: x.important, done: !!x.done, subs: x.subs || [] })));
   return `
     <div class="daynav"><div class="lbl"><b>กล่องงาน</b><span>งานที่ยังไม่กำหนดวัน ว่างเมื่อไหร่ค่อยย้ายลงวัน</span></div></div>
-    <form class="quick" id="quick"><input id="qIn" placeholder="+ จดงานไว้ก่อน" autocomplete="off" enterkeyhint="done"><button class="btn primary">เพิ่ม</button></form>
+    <form class="quick" id="quick"><input id="qIn" placeholder="+ จดงานไว้ก่อน" autocomplete="off"><button class="btn primary">เพิ่ม</button></form>
     ${list.length ? list.map(it => itemHTML(it).replace('<div class="time"></div>', `<div class="time"><button class="btn sm" data-today="${it.id}">วันนี้</button></div>`)).join('') : '<div class="empty">กล่องงานว่าง</div>'}`;
 }
 function renderTT() {
@@ -443,8 +444,15 @@ function bind() {
   document.querySelectorAll('[data-today]').forEach(b => b.onclick = e => { e.stopPropagation(); const t = db.tasks[b.dataset.today]; put('tasks', { ...t, date: todayISO() }); toast('ย้ายไปวันนี้แล้ว'); });
   document.querySelectorAll('[data-cell]').forEach(c => c.onclick = () => { const [d, p] = c.dataset.cell.split(':').map(Number); showTTForm(d, p, c.dataset.rid); });
   const q = $('#quick');
-  if (q) q.onsubmit = e => {
-    e.preventDefault(); const v = $('#qIn').value.trim(); if (!v) return;
+  if (q) { q.onsubmit = e => { e.preventDefault(); quickAdd(); }; q.querySelector('button').onclick = e => { e.preventDefault(); quickAdd(); }; $('#qIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); quickAdd(); } }; }
+}
+let lastQuick = { t: 0, v: '' };
+function quickAdd() {
+  {
+    const v = ($('#qIn')?.value || '').trim();
+    if (!v) { if (Date.now() - lastQuick.t > 800) { toast('พิมพ์ชื่องานก่อน'); $('#qIn')?.focus(); } return; }
+    if (v === lastQuick.v && Date.now() - lastQuick.t < 800) return; // กันกดซ้ำจากปุ่ม+Enter พร้อมกัน
+    lastQuick = { t: Date.now(), v };
     const r = parseQuick(v, tab === 'inbox' ? null : viewDate);
     if (!r.title) { toast('ใส่ชื่องานด้วย'); return; }
     put('tasks', { id: uid(), title: r.title, date: tab === 'inbox' && !/วันนี้|พรุ่งนี้|มะรืน|วันที่|ม\.ค|ก\.พ|มี\.ค|เม\.ย|พ\.ค|มิ\.ย|ก\.ค|ส\.ค|ก\.ย|ต\.ค|พ\.ย|ธ\.ค|จันทร์|อังคาร|พุธ|พฤหัส|ศุกร์|เสาร์|อาทิตย์/.test(v) ? null : r.date, time: r.time, end: r.end, important: r.important, cat: r.cat || '', done: false, subs: [], createdAt: Date.now() });
@@ -719,6 +727,8 @@ function showSync() {
 }
 
 /* ====================== เริ่มต้น ====================== */
+window.addEventListener('error', e => toast('เกิดข้อผิดพลาด: ' + (e.message || '').slice(0, 60)));
+window.addEventListener('unhandledrejection', e => { const m = String(e.reason?.message || e.reason || ''); if (!/badge/i.test(m)) toast('เกิดข้อผิดพลาด: ' + m.slice(0, 60)); });
 $('#btnSettings').onclick = showSettings;
 $('#btnAdd').onclick = () => showTaskForm(null, tab === 'inbox' ? null : (tab === 'day' ? viewDate : todayISO()));
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.tab; if (tab === 'day' || tab === 'week') viewDate = todayISO(); render(); });
