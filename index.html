@@ -395,10 +395,12 @@ function renderPA() {
   const queued = by('queued'), proposed = by('proposed'), approved = by('approved'), filed = by('filed');
   const cnt = Array(15).fill(0); filed.forEach(x => (x.stds || []).forEach(n => { if (n >= 1 && n <= 15) cnt[n - 1]++; }));
   const ready = !!driveCfg?.url;
+  // แอปที่เปิดค้างไว้ก่อนตั้งค่า Drive: โหลดค่าใหม่เอง (ไม่เกินทุก 10 วินาที)
+  if (!ready && cloud && Date.now() - (renderPA.lastTry || 0) > 10000) { renderPA.lastTry = Date.now(); loadDriveCfg().then(c => { if (c?.url) render(); }); }
   return `
     <div class="daynav"><div class="lbl"><b>ส่งงาน PA</b><span>ส่งไฟล์ → Claude จัดหัวข้อ → คุณตรวจ → Claude ขึ้นเว็บ PA-Online</span></div></div>
     <div class="steps">${[['ส่งไฟล์', queued.length], ['รอตรวจ', proposed.length], ['รอขึ้นเว็บ', approved.length], ['ขึ้นเว็บแล้ว', filed.length]].map(([t, n], i) => `<div class="${n ? 'on' : ''}"><b>${n}</b><span>${i + 1}. ${t}</span></div>`).join('')}</div>
-    ${ready ? '' : `<div class="empty" style="margin-bottom:10px">${cloud ? 'ยังไม่ได้เชื่อม Google Drive' : 'ล็อกอินก่อน (⚙️ ตั้งค่า) จึงจะส่งไฟล์ได้'}</div>`}
+    ${ready ? '' : `<div class="empty" style="margin-bottom:10px">${cloud ? 'กำลังเชื่อม Google Drive… ถ้าค้างนาน ให้ปิดแอปแล้วเปิดใหม่' : 'ล็อกอินก่อน (⚙️ ตั้งค่า) จึงจะส่งไฟล์ได้'}</div>`}
 
     ${proposed.length ? `<div class="row" style="margin:14px 0 4px"><h2 style="margin:0;color:#d9480f" class="grow">รอคุณตรวจ <span class="cnt">${proposed.length}</span></h2><button class="btn green" id="paApproveAll">✓ อนุมัติทั้งหมด</button></div>
       <div class="hint" style="margin-bottom:6px">Claude จัดหัวข้อและเขียนคำอธิบายไว้ให้ แตะหัวข้อเพื่อเปลี่ยน แก้คำอธิบายได้ แล้วกดอนุมัติ</div>
