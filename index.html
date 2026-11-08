@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3a2a78">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="วันนี้">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>วันนี้</title>
+<style>
+@font-face{font-family:"TH Sarabun New";src:url(fonts/thsarabunnew-webfont.ttf) format("truetype");font-weight:400}
+@font-face{font-family:"TH Sarabun New";src:url(fonts/thsarabunnew_bold-webfont.ttf) format("truetype");font-weight:700}
+:root{--ink:#3a2a78;--ink2:#271b57;--text:#1f1b33;--mute:#6c6788;--line:#e0dcef;--paper:#f5f4fa;--now:#e5484d;--green:#1a8a5a}
+*{box-sizing:border-box}
+html,body{overflow-x:hidden;margin:0;color:var(--text);font-family:"TH Sarabun New",sans-serif;font-size:21px;line-height:1.3;-webkit-text-size-adjust:100%;background:var(--paper)}
+body{min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #a99cf0;outline-offset:2px}
+header{position:sticky;top:0;z-index:5;background:var(--ink);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;box-shadow:0 2px 0 var(--ink2)}
+.hrow1{display:flex;align-items:center;gap:10px}
+header img{width:40px;height:40px;border-radius:10px;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+header h1{font-size:30px;margin:0;flex:1}
+#sync{font-size:16px;white-space:nowrap;background:rgba(255,255,255,.12);border-radius:999px;padding:1px 12px}
+.iconbtn{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:12px;width:42px;height:40px;cursor:pointer;font-size:22px;display:grid;place-items:center}
+.tabs{display:flex;gap:2px;justify-content:center;margin-top:8px;overflow-x:auto}
+.tabs button{border:0;background:transparent;color:rgba(255,255,255,.72);font-size:21px;padding:4px 16px 6px;border-radius:12px 12px 0 0;cursor:pointer;white-space:nowrap}
+.tabs button.on{background:var(--paper);color:var(--ink);font-weight:700}
+.tabs .badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--now);color:#fff;font-size:15px;line-height:18px;margin-left:4px;vertical-align:2px}
+main{max-width:860px;margin:0 auto;padding:14px 14px 120px}
+
+/* แถบเลือกวัน */
+.daynav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.daynav .lbl{flex:1;line-height:1.05}
+.daynav .lbl b{font-size:32px;color:var(--ink)} .daynav .lbl span{display:block;font-size:18px;color:var(--mute)}
+.navbtn{border:1.5px solid var(--line);background:#fff;border-radius:999px;min-width:40px;height:38px;font-size:22px;cursor:pointer;padding:0 12px}
+.progress{height:8px;background:var(--line);border-radius:8px;overflow:hidden;margin:2px 0 12px}
+.progress i{display:block;height:100%;background:var(--green);border-radius:8px;transition:width .3s}
+.quick{display:flex;gap:8px;margin-bottom:14px}
+.quick input{flex:1;min-width:0;font-size:23px;border:2px solid var(--line);border-radius:14px;padding:6px 14px;background:#fff}
+.quick input:focus{border-color:var(--ink);outline:none}
+.qhint{font-size:17px;color:var(--mute);margin:-10px 0 12px 4px}
+
+h2{font-size:22px;margin:16px 0 4px;color:var(--mute);font-weight:700;display:flex;align-items:center;gap:8px}
+h2 .cnt{font-weight:400;font-size:18px}
+
+/* เส้นเวลา */
+.timeline{position:relative;padding-left:4px}
+.item{position:relative;display:flex;align-items:flex-start;gap:10px;padding:7px 10px 7px 0;border-bottom:1px solid var(--line);background:transparent}
+.item .time{flex:none;width:62px;text-align:right;font-size:19px;color:var(--mute);line-height:1.15;padding-top:3px}
+.item .time b{display:block;color:var(--text);font-size:22px}
+.item .rail{flex:none;width:6px;align-self:stretch;border-radius:4px}
+.item .main{flex:1;min-width:0;cursor:pointer}
+.item .title{font-size:23px;line-height:1.2;word-break:break-word}
+.item .sub{font-size:17px;color:var(--mute)}
+.item .tag{display:inline-block;font-size:15px;border-radius:999px;padding:0 8px;color:#fff;vertical-align:2px;margin-right:4px}
+.item.done .title{text-decoration:line-through;color:var(--mute)}
+.item.skip .title{text-decoration:line-through;color:#a7a2bd}
+.item.skip .rail{opacity:.3}
+.check{flex:none;width:32px;height:32px;border-radius:50%;border:2.5px solid #b9b3d3;background:#fff;cursor:pointer;display:grid;place-items:center;margin-top:1px;padding:0}
+.item.done .check{background:var(--green);border-color:var(--green)}
+.item.done .check::after{content:"";width:12px;height:7px;border:solid #fff;border-width:0 0 3px 3px;transform:rotate(-45deg) translate(1px,-2px)}
+.star{color:#e09b0b}
+.nowline{display:flex;align-items:center;gap:8px;margin:2px 0;color:var(--now);font-weight:700;font-size:18px}
+.nowline::before{content:"";width:62px;text-align:right}
+.nowline i{flex:1;height:2px;background:var(--now);border-radius:2px;position:relative}
+.nowline i::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--now)}
+.empty{background:#fff;border:2px dashed #cfc9e6;border-radius:16px;padding:22px 16px;text-align:center;color:var(--mute);font-size:21px}
+.ext{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:6px 12px;margin-top:6px;text-decoration:none;color:var(--text)}
+.ext .ic{font-size:24px}
+.ext .t{flex:1;font-size:21px;line-height:1.2}
+.ext .t small{display:block;color:var(--mute);font-size:17px}
+
+/* สัปดาห์ */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.wday{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:6px 8px;min-height:120px;cursor:pointer}
+.wday.today{border-color:var(--ink);box-shadow:0 0 0 2px #d7d0f5}
+.wday .wh{display:flex;align-items:baseline;gap:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.wday .wh b{font-size:22px;color:var(--ink)} .wday .wh span{font-size:17px;color:var(--mute)}
+.wday .wi{font-size:17px;line-height:1.2;padding:2px 0 2px 6px;border-left:4px solid;margin:3px 0;word-break:break-word}
+.wday .wi.done{text-decoration:line-through;color:var(--mute)}
+@media (max-width:760px){.week{grid-template-columns:1fr}.wday{min-height:0}}
+
+/* ตารางสอน */
+.ttwrap{overflow-x:auto;background:#fff;border:1.5px solid var(--line);border-radius:14px}
+table.tt{border-collapse:collapse;width:100%;min-width:760px;font-size:18px}
+table.tt th,table.tt td{border:1px solid var(--line);padding:4px;text-align:center;vertical-align:middle}
+table.tt th{background:#f0eef8;color:var(--ink);font-weight:700;line-height:1.1}
+table.tt th small{display:block;font-weight:400;color:var(--mute);font-size:15px}
+table.tt td.cell{cursor:pointer;height:64px;line-height:1.15}
+table.tt td.cell:hover{background:#faf9fe}
+table.tt td.cell.f{color:#fff;font-weight:700}
+table.tt td.cell.f small{display:block;font-weight:400;opacity:.9;font-size:16px}
+table.tt td.lunch{background:#f7f6fb;color:var(--mute);writing-mode:vertical-rl;font-size:16px}
+
+.btn{white-space:nowrap;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:5px 14px;cursor:pointer;font-size:20px;color:var(--text)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+.btn.green{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.danger{color:var(--now)}
+.btn.sm{padding:0 10px;font-size:18px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+.hint{font-size:18px;color:var(--mute)}
+
+dialog{border:0;border-radius:22px;padding:0;width:min(580px,94vw);max-height:90vh;box-shadow:0 24px 70px rgba(39,27,87,.35);color:var(--text)}
+dialog::backdrop{background:rgba(39,27,87,.45)}
+dialog[open]{animation:pop .18s ease-out}
+@keyframes pop{from{transform:translateY(12px);opacity:.4}to{transform:none;opacity:1}}
+@media (max-width:600px){dialog{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:22px 22px 0 0;max-height:92vh}.sheet{padding-bottom:calc(18px + env(safe-area-inset-bottom))}}
+@media (prefers-reduced-motion:reduce){dialog[open]{animation:none}.progress i{transition:none}}
+.sheet{padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px;overflow:auto;max-height:90vh}
+.sheet h3{margin:0;font-size:30px;color:var(--ink)}
+label.f{display:flex;flex-direction:column;gap:2px;font-size:19px;color:var(--mute)}
+label.f input,label.f select,label.f textarea{color:var(--text);font-size:23px;border:1.5px solid var(--line);border-radius:12px;padding:5px 12px;background:#fff;min-width:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1.5px solid var(--line);border-radius:999px;padding:3px 14px;cursor:pointer;background:#fff;font-size:21px}
+.chip.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:700}
+.chip .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:0}
+.subs{display:flex;flex-direction:column;gap:4px}
+.subs label{display:flex;gap:8px;align-items:center;font-size:21px}
+.subs input[type=text]{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:2px 10px;font-size:21px;min-width:0}
+.toast{white-space:nowrap;position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink2);color:#fff;border-radius:999px;padding:6px 22px;z-index:99;font-size:21px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:520px){
+  header{padding-left:12px;padding-right:12px} header h1{font-size:26px} header img{width:36px;height:36px}
+  #sync{font-size:0;padding:0 4px;background:none} #sync::first-letter{font-size:20px}
+  .tabs button{padding:4px 11px 6px;font-size:19px}
+  main{padding-left:10px;padding-right:10px}
+  .item .time{width:54px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow1">
+    <img src="icon-192.png" alt="">
+    <h1>วันนี้</h1>
+    <span id="sync"></span>
+    <button class="iconbtn" id="btnSettings" title="ตั้งค่า" aria-label="ตั้งค่า">⚙️</button>
+  </div>
+  <nav class="tabs">
+    <button data-tab="day" class="on">วันนี้</button>
+    <button data-tab="week">สัปดาห์</button>
+    <button data-tab="inbox">กล่องงาน</button>
+    <button data-tab="tt">ตารางสอน</button>
+  </nav>
+</header>
+<main id="main"></main>
+<dialog id="dlg"><div class="sheet" id="sheet"></div></dialog>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* ====================== ค่าคงที่ ====================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB5jzaZiPGq0oYPqB9MCljXAKzs05rhPBg",
+  authDomain: "sirearth-tutor.firebaseapp.com",
+  projectId: "sirearth-tutor",
+  storageBucket: "sirearth-tutor.firebasestorage.app",
+  messagingSenderId: "472071806564",
+  appId: "1:472071806564:web:88e1ac2575318a320dc971",
+};
+const FIREBASE_VER = '10.12.2';
+// ข้อมูลของแอปนี้ (เขียนได้)
+const COL = { tasks: 'today_tasks', rules: 'today_rules', occ: 'today_occ' };
+// ข้อมูลจากแอปอื่นในบัญชีเดียวกัน (อ่านอย่างเดียว)
+const EXT = { students: 'students', sessions: 'sessions', invoices: 'invoices', splitServices: 'split_services', splitPayments: 'split_payments', splitPeople: 'split_people' };
+const TUTOR_URL = 'https://spk1234-aff.github.io/tutor/', SPLIT_URL = 'https://spk1234-aff.github.io/split/';
+const DEFAULT_SETTINGS = {
+  cats: [
+    { id: 'teach', name: 'สอน', color: '#2f5bd3' },
+    { id: 'activity', name: 'กิจกรรม', color: '#0e8a9a' },
+    { id: 'affairs', name: 'กิจการนักเรียน', color: '#1a8a5a' },
+    { id: 'tutor', name: 'สอนพิเศษ', color: '#e0700f' },
+    { id: 'personal', name: 'ส่วนตัว', color: '#8b46d6' },
+  ],
+  periods: [
+    { n: 1, s: '08:30', e: '09:20' }, { n: 2, s: '09:20', e: '10:10' }, { n: 3, s: '10:20', e: '11:10' }, { n: 4, s: '11:10', e: '12:00' },
+    { n: 5, s: '13:00', e: '13:50' }, { n: 6, s: '13:50', e: '14:40' }, { n: 7, s: '14:40', e: '15:30' },
+  ],
+  lunchAfter: 4,
+  ttName: '',
+  showTutor: true, showSplit: true,
+};
+const TH_DAY_FULL = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+const TH_DAY = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+const TH_MONTH_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+/* ====================== ตัวช่วย ====================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const pad = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayISO = () => iso(new Date());
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, k) => { const d = parse(s); d.setDate(d.getDate() + k); return iso(d); };
+const dow = s => parse(s).getDay();
+const daysBetween = (a, b) => Math.round((parse(b) - parse(a)) / 864e5);
+const thDate = (s, day = true) => { const d = parse(s); return `${day ? TH_DAY[d.getDay()] + ' ' : ''}${d.getDate()} ${TH_MONTHS[d.getMonth()]}`; };
+const thLong = s => { const d = parse(s); return `${d.getDate()} ${TH_MONTH_FULL[d.getMonth()]} ${d.getFullYear() + 543}`; };
+const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const money = n => (+n).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2200); }
+
+/* ====================== ข้อมูล ====================== */
+const db = { tasks: {}, rules: {}, occ: {}, settings: structuredClone(DEFAULT_SETTINGS), ext: {} };
+Object.keys(EXT).forEach(k => db.ext[k] = {});
+const LOCAL_KEY = 'today-local-v1', MIRROR_KEY = 'today-cloud-mirror-v1';
+let cloud = null, syncState = 'local';
+function loadFrom(key) {
+  try { const d = JSON.parse(localStorage.getItem(key) || 'null'); if (d) { db.tasks = d.tasks || {}; db.rules = d.rules || {}; db.occ = d.occ || {}; db.settings = { ...structuredClone(DEFAULT_SETTINGS), ...(d.settings || {}) }; if (d.ext) db.ext = { ...db.ext, ...d.ext }; } } catch (e) { console.warn(e); }
+}
+function saveSnapshot() { try { localStorage.setItem(cloud ? MIRROR_KEY : LOCAL_KEY, JSON.stringify(db)); } catch (e) { console.warn(e); } }
+const docRef = (col, id) => cloud.fs.doc(cloud.fsdb, 'users', cloud.uid, COL[col], id);
+function put(col, obj, quiet) {
+  db[col][obj.id] = obj; saveSnapshot(); if (!quiet) render();
+  if (cloud) cloud.fs.setDoc(docRef(col, obj.id), obj).catch(e => toast('ซิงก์ไม่สำเร็จ: ' + e.code));
+}
+function del(col, id, quiet) {
+  delete db[col][id]; saveSnapshot(); if (!quiet) render();
+  if (cloud) cloud.fs.deleteDoc(docRef(col, id)).catch(e => toast('ซิงก์ไม่สำเร็จ: ' + e.code));
+}
+function putSettings(patch) {
+  db.settings = { ...db.settings, ...patch }; saveSnapshot(); render();
+  if (cloud) cloud.fs.setDoc(cloud.fs.doc(cloud.fsdb, 'users', cloud.uid, 'meta', 'today_settings'), db.settings).catch(e => toast('ซิงก์ไม่สำเร็จ: ' + e.code));
+}
+
+/* ====================== ตรรกะ ====================== */
+const cat = id => db.settings.cats.find(c => c.id === id) || { id: '', name: 'ทั่วไป', color: '#8a85a3' };
+const period = n => db.settings.periods.find(p => p.n === +n);
+const ruleTime = r => r.source === 'tt' ? [period(r.p1)?.s || null, period(r.p2 || r.p1)?.e || null] : [r.time || null, r.end || null];
+const ruleActive = (r, d) => (r.startDate || '0000') <= d && (!r.endDate || d <= r.endDate) && (r.days || []).includes(dow(d));
+const occKey = (rid, d) => `${rid}_${d}`;
+function ruleTitle(r) { return r.source === 'tt' ? `${r.title}${r.room ? ' · ห้อง ' + r.room : ''}` : r.title; }
+// รวมงานของวันหนึ่ง: งานครั้งเดียว + งานซ้ำ/ตารางสอน
+function itemsOn(d) {
+  const out = [];
+  Object.values(db.tasks).forEach(t => { if (t.date === d) out.push({ kind: 'task', id: t.id, t, title: t.title, time: t.time || null, end: t.end || null, cat: t.cat, important: t.important, done: !!t.done, subs: t.subs || [] }); });
+  Object.values(db.rules).forEach(r => {
+    if (!ruleActive(r, d)) return;
+    const o = db.occ[occKey(r.id, d)] || {};
+    const [s, e] = ruleTime(r);
+    out.push({ kind: 'occ', id: occKey(r.id, d), r, o, date: d, title: o.title || r.title, time: o.time ?? s, end: o.end ?? e, cat: r.cat, important: r.important, done: !!o.done, skip: !!o.skip,
+      label: r.source === 'tt' ? `คาบ ${r.p1}${r.p2 && r.p2 !== r.p1 ? '–' + r.p2 : ''}${r.room ? ' · ห้อง ' + r.room : ''}${o.note ? ' · 📝' : ''}` : '🔁' });
+  });
+  return out;
+}
+const overdueTasks = d => Object.values(db.tasks).filter(t => t.date && t.date < d && !t.done).sort((a, b) => a.date.localeCompare(b.date));
+const inboxTasks = () => Object.values(db.tasks).filter(t => !t.date).sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0) || (a.createdAt || 0) - (b.createdAt || 0));
+function sortItems(list) {
+  const timed = list.filter(x => x.time).sort((a, b) => a.time.localeCompare(b.time) || (a.done - b.done));
+  const untimed = list.filter(x => !x.time).sort((a, b) => (a.done - b.done) || (b.important ? 1 : 0) - (a.important ? 1 : 0) || (a.t?.createdAt || 0) - (b.t?.createdAt || 0));
+  return { timed, untimed };
+}
+function toggleDone(it) {
+  if (it.kind === 'task') put('tasks', { ...it.t, done: !it.t.done, doneAt: it.t.done ? null : todayISO() });
+  else { const o = db.occ[it.id] || { id: it.id, rid: it.r.id, date: it.date }; put('occ', { ...o, done: !o.done, doneAt: o.done ? null : todayISO() }); }
+}
+
+// งานจากแอปอื่น
+function externalItems() {
+  const out = [], S = db.settings, E = db.ext;
+  if (S.showTutor) {
+    const billed = new Set(); Object.values(E.invoices).forEach(iv => (iv.sessionIds || []).forEach(id => billed.add(id)));
+    Object.values(E.students).filter(s => !s.paused).forEach(s => {
+      const n = +s.cycleSize || (+s.perWeek * 4);
+      const ub = Object.values(E.sessions).filter(x => x.studentId === s.id && !billed.has(x.id)).length;
+      if (n && ub >= n) out.push({ ic: '🟠', t: `ออกใบแจ้งค่าเรียน ${s.name}`, sub: `ครบรอบแล้ว (${ub}/${n} คาบ)`, url: TUTOR_URL });
+    });
+    Object.values(E.invoices).filter(iv => iv.status !== 'paid').forEach(iv => out.push({ ic: '🔴', t: `รอโอนค่าเรียน ${iv.studentName}`, sub: `${money(iv.amount)} บาท · ส่งใบแจ้งมา ${daysBetween(iv.issuedAt, todayISO())} วัน`, url: TUTOR_URL }));
+  }
+  if (S.showSplit) {
+    const ym = todayISO().slice(0, 7);
+    Object.values(E.splitServices).filter(s => !s.paused && (s.startYm || '0000') <= ym && (!s.endYm || ym <= s.endYm)).forEach(s => {
+      const unpaid = (s.members || []).filter(pid => E.splitPeople[pid] && !E.splitPayments[`${ym}_${s.id}_${pid}`]);
+      if (unpaid.length) out.push({ ic: '💸', t: `หาร ${s.name}: ยังไม่จ่าย ${unpaid.length} คน`, sub: unpaid.map(p => E.splitPeople[p].name).join(', '), url: SPLIT_URL });
+    });
+  }
+  return out;
+}
+
+/* ====================== ตัวแยกข้อความพิมพ์เร็ว ====================== */
+const DAY_WORDS = [['พฤหัสบดี', 4], ['พฤหัส', 4], ['อาทิตย์', 0], ['จันทร์', 1], ['อังคาร', 2], ['พุธ', 3], ['ศุกร์', 5], ['เสาร์', 6]];
+function parseQuick(text, base) {
+  let s = ' ' + text + ' ', date = base, time = null, end = null, important = false, catId = null, m;
+  if (/!/.test(s)) { important = true; s = s.replace(/!/g, ' '); }
+  if ((m = s.match(/#(\S+)/))) { const c = db.settings.cats.find(c => c.name.startsWith(m[1]) || c.name.includes(m[1])); if (c) { catId = c.id; s = s.replace(m[0], ' '); } }
+  if ((m = s.match(/\s(\d{1,2})[:.](\d{2})\s*[-–]\s*(\d{1,2})[:.](\d{2})(?=\s)/))) { time = `${pad(m[1])}:${m[2]}`; end = `${pad(m[3])}:${m[4]}`; s = s.replace(m[0], ' '); }
+  else if ((m = s.match(/\s(\d{1,2})[:.](\d{2})(?=\s)/)) && +m[1] < 24) { time = `${pad(m[1])}:${m[2]}`; s = s.replace(m[0], ' '); }
+  const today = todayISO();
+  if ((m = s.match(/\s(วันนี้)(?=\s)/))) { date = today; s = s.replace(m[0], ' '); }
+  else if ((m = s.match(/\s(พรุ่งนี้)(?=\s)/))) { date = addDays(today, 1); s = s.replace(m[0], ' '); }
+  else if ((m = s.match(/\s(มะรืน(?:นี้)?)(?=\s)/))) { date = addDays(today, 2); s = s.replace(m[0], ' '); }
+  // วันที่: "วันที่ 20/11" หรือ "20 พ.ย." (ไม่จับ 6/4 เฉย ๆ เพราะชนกับชื่อห้อง)
+  else if ((m = s.match(/\sวันที่\s*(\d{1,2})\/(\d{1,2})(?=\s)/)) || (m = s.match(new RegExp(`\\s(\\d{1,2})\\s*(${TH_MONTHS.map(x => x.replace(/\./g, '\\.')).join('|')})(?=\\s)`)))) {
+    const mo = isNaN(+m[2]) ? TH_MONTHS.indexOf(m[2]) + 1 : +m[2];
+    const y = new Date().getFullYear(); let d = `${y}-${pad(mo)}-${pad(m[1])}`; if (d < addDays(today, -60)) d = `${y + 1}-${pad(mo)}-${pad(m[1])}`; date = d; s = s.replace(m[0], ' ');
+  } else {
+    for (const [w, k] of DAY_WORDS) {
+      const re = new RegExp(`\\s(?:วัน)?${w}(?:หน้า)?(?=\\s)`);
+      if ((m = s.match(re))) { const from = date || today; let diff = (k - dow(from) + 7) % 7; if (/หน้า/.test(m[0])) diff += diff === 0 ? 7 : 7; date = addDays(from, diff); s = s.replace(m[0], ' '); break; }
+    }
+  }
+  return { title: s.replace(/\s+/g, ' ').trim(), date, time, end, important, cat: catId };
+}
+
+/* ====================== หน้าจอ ====================== */
+let tab = 'day', viewDate = todayISO();
+function render() {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  const t = todayISO();
+  const pending = itemsOn(t).filter(x => !x.done && !x.skip).length + overdueTasks(t).length;
+  const inboxN = inboxTasks().length;
+  $('.tabs [data-tab="day"]').innerHTML = `วันนี้${pending ? `<span class="badge">${pending}</span>` : ''}`;
+  $('.tabs [data-tab="inbox"]').innerHTML = `กล่องงาน${inboxN ? `<span class="badge" style="background:#8a85a3">${inboxN}</span>` : ''}`;
+  if ('setAppBadge' in navigator) (pending ? navigator.setAppBadge(pending) : navigator.clearAppBadge()).catch(() => {});
+  $('#main').innerHTML = ({ day: renderDay, week: renderWeek, inbox: renderInbox, tt: renderTT })[tab]();
+  bind();
+  if (openRerender && $('#dlg').open) openRerender();
+}
+function itemHTML(it, opts = {}) {
+  const c = cat(it.cat);
+  const cls = [it.done ? 'done' : '', it.skip ? 'skip' : ''].join(' ');
+  const subsDone = (it.subs || []).filter(x => x.done).length;
+  return `<div class="item ${cls}">
+    <div class="time">${it.time ? `<b>${it.time}</b>${it.end ? it.end : ''}` : (opts.overdue ? `<span style="color:var(--now)">ค้าง<br>${daysBetween(it.t.date, todayISO())} วัน</span>` : '')}</div>
+    <div class="rail" style="background:${c.color}"></div>
+    <div class="main" data-open="${it.kind}:${it.id}">
+      <div class="title">${it.important ? '<span class="star">⚑</span> ' : ''}${esc(it.title)}</div>
+      <div class="sub"><span class="tag" style="background:${c.color}">${esc(c.name)}</span>${it.label ? esc(it.label) + ' ' : ''}${it.skip ? '<b>งดวันนี้</b> ' : ''}${it.subs?.length ? `☑ ${subsDone}/${it.subs.length} ` : ''}${opts.overdue ? `กำหนด ${thDate(it.t.date)}` : ''}</div>
+    </div>
+    ${it.skip ? '' : `<button class="check" data-check="${it.kind}:${it.id}" aria-label="${it.done ? 'ยกเลิกเสร็จ' : 'ทำเสร็จ'}"></button>`}
+  </div>`;
+}
+let currentItems = {};
+function remember(list) { list.forEach(it => currentItems[`${it.kind}:${it.id}`] = it); return list; }
+function renderDay() {
+  currentItems = {};
+  const d = viewDate, t = todayISO(), isToday = d === t;
+  const list = remember(itemsOn(d));
+  const { timed, untimed } = sortItems(list);
+  const od = isToday ? remember(overdueTasks(d).map(x => ({ kind: 'task', id: x.id, t: x, title: x.title, cat: x.cat, important: x.important, done: false, subs: x.subs || [] }))) : [];
+  const countable = list.filter(x => !x.skip), doneN = countable.filter(x => x.done).length;
+  const rel = isToday ? 'วันนี้' : d === addDays(t, 1) ? 'พรุ่งนี้' : d === addDays(t, -1) ? 'เมื่อวาน' : TH_DAY_FULL[dow(d)];
+  let timedHTML = '';
+  if (timed.length) {
+    let nowShown = !isToday; const now = nowHM();
+    timed.forEach(it => {
+      if (!nowShown && it.time > now) { timedHTML += `<div class="nowline"><i></i>ตอนนี้ ${now}</div>`; nowShown = true; }
+      timedHTML += itemHTML(it);
+    });
+    if (!nowShown) timedHTML += `<div class="nowline"><i></i>ตอนนี้ ${now}</div>`;
+  }
+  const ext = isToday ? externalItems() : [];
+  return `
+    <div class="daynav">
+      <button class="navbtn" data-nav="-1" aria-label="วันก่อน">‹</button>
+      <div class="lbl"><b>${rel}</b><span>วัน${TH_DAY_FULL[dow(d)]}ที่ ${thLong(d)}</span></div>
+      ${isToday ? '' : '<button class="navbtn" data-nav="0">วันนี้</button>'}
+      <button class="navbtn" data-nav="1" aria-label="วันถัดไป">›</button>
+    </div>
+    <div class="progress" title="เสร็จ ${doneN}/${countable.length}"><i style="width:${countable.length ? doneN / countable.length * 100 : 0}%"></i></div>
+    <form class="quick" id="quick"><input id="qIn" placeholder="+ เพิ่มงาน เช่น ประชุม 13:00 พรุ่งนี้" autocomplete="off" enterkeyhint="done"><button class="btn primary">เพิ่ม</button></form>
+    <div class="qhint">พิมพ์วัน/เวลาต่อท้ายได้ เช่น พรุ่งนี้, ศุกร์, 20 พ.ย., 13:00 · ! = สำคัญ · #หมวด</div>
+    ${od.length ? `<h2 style="color:var(--now)">ค้างจากวันก่อน <span class="cnt">${od.length}</span></h2>${od.map(it => itemHTML(it, { overdue: true })).join('')}` : ''}
+    ${timed.length ? `<h2>ตามเวลา <span class="cnt">${timed.filter(x => x.done).length}/${timed.filter(x => !x.skip).length}</span></h2><div class="timeline">${timedHTML}</div>` : ''}
+    ${untimed.length ? `<h2>ไม่ระบุเวลา <span class="cnt">${untimed.filter(x => x.done).length}/${untimed.length}</span></h2>${untimed.map(it => itemHTML(it)).join('')}` : ''}
+    ${!list.length && !od.length ? `<div class="empty">${isToday ? 'วันนี้ยังไม่มีงาน พิมพ์ในช่องด้านบนเพื่อเพิ่ม' : 'วันนี้ว่าง'}</div>` : ''}
+    ${ext.length ? `<h2>จากแอปอื่น <span class="cnt">${ext.length}</span></h2>${ext.map(x => `<a class="ext" href="${x.url}"><span class="ic">${x.ic}</span><span class="t">${esc(x.t)}<small>${esc(x.sub)}</small></span><span class="hint">เปิด ›</span></a>`).join('')}` : ''}`;
+}
+function renderWeek() {
+  currentItems = {};
+  const start = addDays(viewDate, -((dow(viewDate) + 6) % 7)), t = todayISO();
+  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  return `
+    <div class="daynav">
+      <button class="navbtn" data-wnav="-7" aria-label="สัปดาห์ก่อน">‹</button>
+      <div class="lbl"><b>สัปดาห์</b><span>${thDate(days[0], false)} – ${thLong(days[6])}</span></div>
+      <button class="navbtn" data-wnav="0">สัปดาห์นี้</button>
+      <button class="navbtn" data-wnav="7" aria-label="สัปดาห์ถัดไป">›</button>
+    </div>
+    <div class="week">${days.map(d => {
+      const { timed, untimed } = sortItems(itemsOn(d));
+      const all = [...timed, ...untimed].filter(x => !x.skip);
+      return `<div class="wday ${d === t ? 'today' : ''}" data-goday="${d}"><div class="wh"><b>${TH_DAY[dow(d)]}</b><span>${parse(d).getDate()} ${TH_MONTHS[parse(d).getMonth()]}</span><span class="grow"></span><span>${all.filter(x => x.done).length}/${all.length}</span></div>
+        ${all.map(x => `<div class="wi ${x.done ? 'done' : ''}" style="border-color:${cat(x.cat).color}">${x.time ? `<b>${x.time}</b> ` : ''}${esc(x.title)}</div>`).join('') || '<div class="hint">ว่าง</div>'}</div>`;
+    }).join('')}</div>`;
+}
+function renderInbox() {
+  currentItems = {};
+  const list = remember(inboxTasks().map(x => ({ kind: 'task', id: x.id, t: x, title: x.title, cat: x.cat, important: x.important, done: !!x.done, subs: x.subs || [] })));
+  return `
+    <div class="daynav"><div class="lbl"><b>กล่องงาน</b><span>งานที่ยังไม่กำหนดวัน ว่างเมื่อไหร่ค่อยย้ายลงวัน</span></div></div>
+    <form class="quick" id="quick"><input id="qIn" placeholder="+ จดงานไว้ก่อน" autocomplete="off" enterkeyhint="done"><button class="btn primary">เพิ่ม</button></form>
+    ${list.length ? list.map(it => itemHTML(it).replace('<div class="time"></div>', `<div class="time"><button class="btn sm" data-today="${it.id}">วันนี้</button></div>`)).join('') : '<div class="empty">กล่องงานว่าง</div>'}`;
+}
+function renderTT() {
+  const S = db.settings, t = todayISO();
+  const current = Object.values(db.rules).filter(r => r.source === 'tt' && (!r.endDate || r.endDate >= t));
+  const days = [1, 2, 3, 4, 5]; if (current.some(r => r.days.includes(6))) days.push(6); if (current.some(r => r.days.includes(0))) days.push(0);
+  const ps = S.periods;
+  const cellRule = (d, p) => current.filter(r => r.days.includes(d) && +r.p1 <= p && p <= +(r.p2 || r.p1)).sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+  const future = current.filter(r => r.startDate > t);
+  let body = '';
+  days.forEach(d => {
+    body += `<tr><th>${TH_DAY_FULL[d]}</th>`;
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i].n;
+      if (S.lunchAfter && i > 0 && ps[i - 1].n === S.lunchAfter && d === days[0]) body += `<td class="lunch" rowspan="${days.length}">พักเที่ยง</td>`;
+      const rs = cellRule(d, p);
+      const r = rs.find(x => (x.startDate || '0000') <= t) || rs[0];
+      if (r && +r.p1 !== p && +r.p1 >= ps[0].n && rs.length === 1) continue; // ช่องที่ถูกรวมแล้ว
+      if (r) {
+        const span = rs.length === 1 ? (+(r.p2 || r.p1) - +r.p1 + 1) : 1;
+        const fut = r.startDate > t;
+        body += `<td class="cell f" colspan="${span}" style="background:${cat(r.cat).color}${fut ? ';opacity:.6' : ''}" data-cell="${d}:${p}" data-rid="${r.id}">${esc(r.title)}${r.room ? `<small>ห้อง ${esc(r.room)}</small>` : ''}${fut ? `<small>เริ่ม ${thDate(r.startDate, false)}</small>` : ''}</td>`;
+      } else body += `<td class="cell" data-cell="${d}:${p}"></td>`;
+    }
+    body += '</tr>';
+  });
+  const head = `<tr><th>คาบ</th>${ps.map((p, i) => (S.lunchAfter && i > 0 && ps[i - 1].n === S.lunchAfter ? '<th style="width:28px"></th>' : '') + `<th>${p.n}<small>${p.s}–${p.e}</small></th>`).join('')}</tr>`;
+  return `
+    <div class="daynav"><div class="lbl"><b>ตารางสอน</b><span>${esc(S.ttName || 'ตารางที่ใช้อยู่ตอนนี้')} · แตะช่องเพื่อแก้ไขหรือเพิ่มคาบ</span></div></div>
+    <div class="ttwrap"><table class="tt">${head}${body}</table></div>
+    <div class="hint" style="margin-top:8px">เปลี่ยนเฉพาะวันเดียว (แลกคาบ งดสอน) ให้แตะคาบนั้นในหน้า "วันนี้" · เปลี่ยนเวลาคาบได้ที่ ⚙️ ตั้งค่า</div>
+    ${future.length ? `<div class="hint">มีคาบที่จะเริ่มใช้ในอนาคต ${future.length} รายการ (แสดงจาง ๆ)</div>` : ''}`;
+}
+function bind() {
+  document.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { const k = +b.dataset.nav; viewDate = k === 0 ? todayISO() : addDays(viewDate, k); render(); });
+  document.querySelectorAll('[data-wnav]').forEach(b => b.onclick = () => { const k = +b.dataset.wnav; viewDate = k === 0 ? todayISO() : addDays(viewDate, k); render(); });
+  document.querySelectorAll('[data-goday]').forEach(b => b.onclick = () => { viewDate = b.dataset.goday; tab = 'day'; render(); });
+  document.querySelectorAll('[data-check]').forEach(b => b.onclick = e => { e.stopPropagation(); const it = currentItems[b.dataset.check]; if (it) toggleDone(it); });
+  document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const it = currentItems[b.dataset.open]; if (!it) return; it.kind === 'task' ? showTaskForm(it.t) : showOccSheet(it); });
+  document.querySelectorAll('[data-today]').forEach(b => b.onclick = e => { e.stopPropagation(); const t = db.tasks[b.dataset.today]; put('tasks', { ...t, date: todayISO() }); toast('ย้ายไปวันนี้แล้ว'); });
+  document.querySelectorAll('[data-cell]').forEach(c => c.onclick = () => { const [d, p] = c.dataset.cell.split(':').map(Number); showTTForm(d, p, c.dataset.rid); });
+  const q = $('#quick');
+  if (q) q.onsubmit = e => {
+    e.preventDefault(); const v = $('#qIn').value.trim(); if (!v) return;
+    const r = parseQuick(v, tab === 'inbox' ? null : viewDate);
+    if (!r.title) { toast('ใส่ชื่องานด้วย'); return; }
+    put('tasks', { id: uid(), title: r.title, date: tab === 'inbox' && !/วันนี้|พรุ่งนี้|มะรืน|วันที่|ม\.ค|ก\.พ|มี\.ค|เม\.ย|พ\.ค|มิ\.ย|ก\.ค|ส\.ค|ก\.ย|ต\.ค|พ\.ย|ธ\.ค|จันทร์|อังคาร|พุธ|พฤหัส|ศุกร์|เสาร์|อาทิตย์/.test(v) ? null : r.date, time: r.time, end: r.end, important: r.important, cat: r.cat || '', done: false, subs: [], createdAt: Date.now() });
+    const msg = r.date && r.date !== viewDate ? `เพิ่มใน ${thDate(r.date)} แล้ว` : 'เพิ่มแล้ว';
+    toast(msg); setTimeout(() => $('#qIn')?.focus(), 30);
+  };
+}
+
+/* ====================== กล่องโต้ตอบ ====================== */
+let openRerender = null;
+function openSheet(html) { openRerender = null; $('#sheet').innerHTML = html; if (!$('#dlg').open) $('#dlg').showModal(); return $('#sheet'); }
+const closeSheet = () => $('#dlg').close();
+$('#dlg').addEventListener('click', e => { if (e.target === $('#dlg')) closeSheet(); });
+$('#dlg').addEventListener('close', () => { openRerender = null; });
+const catChips = sel => db.settings.cats.map(c => `<span class="chip ${sel === c.id ? 'on' : ''}" data-cat="${c.id}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</span>`).join('') + `<span class="chip ${!sel ? 'on' : ''}" data-cat="">ทั่วไป</span>`;
+const DAY_CHIPS = [1, 2, 3, 4, 5, 6, 0];
+
+function showTaskForm(t) {
+  const isNew = !t; t = t || { title: '', date: viewDate, cat: '', subs: [] };
+  let catId = t.cat || '', subs = structuredClone(t.subs || []), repeat = false, days = [dow(t.date || todayISO())];
+  const sh = openSheet(`
+    <h3>${isNew ? 'เพิ่มงาน' : 'แก้ไขงาน'}</h3>
+    <label class="f">ชื่องาน<input id="tTitle" value="${esc(t.title)}" autocomplete="off"></label>
+    <div class="row">
+      <label class="f grow">วันที่<input id="tDate" type="date" value="${t.date || ''}"></label>
+      <label class="f grow">เริ่ม<input id="tTime" type="time" value="${t.time || ''}"></label>
+      <label class="f grow">ถึง<input id="tEnd" type="time" value="${t.end || ''}"></label>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tNoDate" ${t.date ? '' : 'checked'}> ยังไม่กำหนดวัน (เก็บในกล่องงาน)</label>
+    <div class="f" style="color:var(--mute);font-size:19px">หมวด</div><div class="chips" id="tCat">${catChips(catId)}</div>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tImp" ${t.important ? 'checked' : ''}> ⚑ งานสำคัญ (ปักไว้บน)</label>
+    <div class="f" style="color:var(--mute);font-size:19px">งานย่อย</div>
+    <div class="subs" id="tSubs"></div>
+    <div class="row"><input id="tNewSub" placeholder="+ เพิ่มงานย่อย" style="flex:1;font-size:21px;border:1.5px solid var(--line);border-radius:10px;padding:2px 10px;min-width:0"><button class="btn sm" id="tAddSub">เพิ่ม</button></div>
+    <label class="f">โน้ต<textarea id="tNote" rows="2">${esc(t.note || '')}</textarea></label>
+    ${isNew || !t.date ? '' : `<details id="tRepDet"><summary style="cursor:pointer;color:var(--ink)">🔁 ทำเป็นงานซ้ำ</summary>
+      <div class="chips" id="tDays" style="margin-top:6px"></div><div class="hint">งานนี้จะกลายเป็นงานซ้ำตามวันที่เลือก เริ่มตั้งแต่วันที่ของงาน</div></details>`}
+    ${isNew ? `<details id="tRepDet"><summary style="cursor:pointer;color:var(--ink)">🔁 ทำซ้ำทุกสัปดาห์</summary><div class="chips" id="tDays" style="margin-top:6px"></div></details>` : ''}
+    <div class="row"><button class="btn ghost" id="tCancel">ยกเลิก</button><span class="grow"></span>
+      ${isNew ? '' : '<button class="btn danger" id="tDel">ลบ</button>'}<button class="btn primary" id="tSave">บันทึก</button></div>`);
+  const drawSubs = () => {
+    $('#tSubs').innerHTML = subs.map((x, i) => `<label><input type="checkbox" data-si="${i}" ${x.done ? 'checked' : ''}><input type="text" data-st="${i}" value="${esc(x.t)}"><button class="btn sm ghost" data-sd="${i}" aria-label="ลบงานย่อย">✕</button></label>`).join('');
+    sh.querySelectorAll('[data-si]').forEach(c => c.onchange = () => { subs[+c.dataset.si].done = c.checked; });
+    sh.querySelectorAll('[data-st]').forEach(c => c.oninput = () => { subs[+c.dataset.st].t = c.value; });
+    sh.querySelectorAll('[data-sd]').forEach(c => c.onclick = e => { e.preventDefault(); subs.splice(+c.dataset.sd, 1); drawSubs(); });
+  };
+  const drawDays = () => { if (!$('#tDays')) return; $('#tDays').innerHTML = DAY_CHIPS.map(d => `<span class="chip ${days.includes(d) ? 'on' : ''}" data-d="${d}">${TH_DAY[d]}</span>`).join('') + `<span class="chip" data-d="wk">จ–ศ</span><span class="chip" data-d="all">ทุกวัน</span>`;
+    sh.querySelectorAll('#tDays .chip').forEach(c => c.onclick = () => { const v = c.dataset.d; days = v === 'wk' ? [1, 2, 3, 4, 5] : v === 'all' ? [0, 1, 2, 3, 4, 5, 6] : days.includes(+v) ? days.filter(x => x !== +v) : [...days, +v]; drawDays(); }); };
+  drawSubs(); drawDays();
+  sh.querySelectorAll('#tCat .chip').forEach(c => c.onclick = () => { catId = c.dataset.cat; sh.querySelectorAll('#tCat .chip').forEach(x => x.classList.toggle('on', x === c)); });
+  $('#tAddSub').onclick = e => { e.preventDefault(); const v = $('#tNewSub').value.trim(); if (!v) return; subs.push({ t: v, done: false }); $('#tNewSub').value = ''; drawSubs(); };
+  $('#tNewSub').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('#tAddSub').click(); } };
+  $('#tCancel').onclick = closeSheet;
+  if (!isNew) $('#tDel').onclick = () => { if (confirm(`ลบงาน "${t.title}"?`)) { del('tasks', t.id); closeSheet(); } };
+  $('#tSave').onclick = () => {
+    const title = $('#tTitle').value.trim(); if (!title) { $('#tTitle').focus(); return; }
+    const date = $('#tNoDate').checked ? null : ($('#tDate').value || viewDate);
+    const rep = $('#tRepDet')?.open && days.length;
+    if (rep) {
+      put('rules', { id: uid(), source: 'task', title, cat: catId, important: $('#tImp').checked, time: $('#tTime').value || null, end: $('#tEnd').value || null, days, startDate: date || todayISO(), endDate: null, createdAt: Date.now() });
+      if (!isNew) del('tasks', t.id);
+      toast('ตั้งเป็นงานซ้ำแล้ว');
+    } else {
+      put('tasks', { ...t, id: t.id || uid(), title, date, time: $('#tTime').value || null, end: $('#tEnd').value || null, cat: catId, important: $('#tImp').checked, subs: subs.filter(x => x.t.trim()), note: $('#tNote').value.trim(), done: !!t.done, createdAt: t.createdAt || Date.now() });
+      toast('บันทึกแล้ว');
+    }
+    closeSheet();
+  };
+  if (isNew) setTimeout(() => $('#tTitle').focus(), 50);
+}
+
+// คาบสอน/งานซ้ำ ของวันหนึ่ง
+function showOccSheet(it) {
+  const r = it.r, o = db.occ[it.id] || { id: it.id, rid: r.id, date: it.date };
+  const [s0, e0] = ruleTime(r);
+  const sh = openSheet(`
+    <h3>${esc(ruleTitle(r))}</h3>
+    <div class="hint">${thLong(it.date)} · ${it.label === '🔁' ? 'งานซ้ำ' : it.label} · ${s0 || ''}${e0 ? '–' + e0 : ''}</div>
+    <div class="row">
+      <button class="btn ${o.done ? '' : 'green'}" id="oDone">${o.done ? '↺ ยังไม่เสร็จ' : '✓ ทำแล้ว'}</button>
+      <button class="btn" id="oSkip">${o.skip ? '↺ ยกเลิกการงด' : '🚫 งดวันนี้'}</button>
+    </div>
+    <h2 style="margin:6px 0 0">เปลี่ยนเฉพาะวันนี้</h2>
+    <label class="f">ชื่อ/รายละเอียด (เช่น แลกคาบ สอนแทน)<input id="oTitle" value="${esc(o.title || '')}" placeholder="${esc(ruleTitle(r))}"></label>
+    <div class="row"><label class="f grow">เริ่ม<input id="oTime" type="time" value="${o.time ?? s0 ?? ''}"></label><label class="f grow">ถึง<input id="oEnd" type="time" value="${o.end ?? e0 ?? ''}"></label></div>
+    <label class="f">โน้ตของวันนี้<textarea id="oNote" rows="2" placeholder="เช่น สอนถึงหน้า 45, สั่งการบ้านข้อ 1–10">${esc(o.note || '')}</textarea></label>
+    <div class="row"><button class="btn ghost" id="oCancel">ปิด</button><span class="grow"></span>
+      <button class="btn" id="oAll">${r.source === 'tt' ? 'แก้ในตารางสอน' : 'แก้งานซ้ำทั้งชุด'}</button><button class="btn primary" id="oSave">บันทึกวันนี้</button></div>`);
+  $('#oCancel').onclick = closeSheet;
+  $('#oDone').onclick = () => { put('occ', { ...o, done: !o.done, doneAt: o.done ? null : todayISO() }); closeSheet(); };
+  $('#oSkip').onclick = () => { put('occ', { ...o, skip: !o.skip }); closeSheet(); toast(o.skip ? 'ยกเลิกการงดแล้ว' : 'งดเฉพาะวันนี้แล้ว'); };
+  $('#oAll').onclick = () => r.source === 'tt' ? showTTForm(r.days[0], +r.p1, r.id) : showRuleForm(r);
+  $('#oSave').onclick = () => {
+    const tm = $('#oTime').value || null, en = $('#oEnd').value || null;
+    put('occ', { ...o, title: $('#oTitle').value.trim() || null, time: tm && tm !== s0 ? tm : null, end: en && en !== e0 ? en : null, note: $('#oNote').value.trim() });
+    closeSheet(); toast('บันทึกเฉพาะวันนี้แล้ว');
+  };
+}
+
+// แก้งานซ้ำทั้งชุด (มีผลตั้งแต่วันที่เลือก)
+function splitRule(r, eff, patch) {
+  if ((r.startDate || '0000') >= eff) { patch ? put('rules', { ...r, ...patch }) : del('rules', r.id); return; }
+  put('rules', { ...r, endDate: addDays(eff, -1) });
+  if (patch) put('rules', { ...r, ...patch, id: uid(), startDate: eff, endDate: r.endDate || null, createdAt: Date.now() });
+}
+function showRuleForm(r) {
+  let catId = r.cat || '', days = [...r.days];
+  const sh = openSheet(`
+    <h3>แก้งานซ้ำ</h3>
+    <label class="f">ชื่องาน<input id="rTitle" value="${esc(r.title)}"></label>
+    <div class="row"><label class="f grow">เริ่ม<input id="rTime" type="time" value="${r.time || ''}"></label><label class="f grow">ถึง<input id="rEnd" type="time" value="${r.end || ''}"></label></div>
+    <div class="f" style="color:var(--mute);font-size:19px">ทำซ้ำทุก</div><div class="chips" id="rDays"></div>
+    <div class="f" style="color:var(--mute);font-size:19px">หมวด</div><div class="chips" id="rCat">${catChips(catId)}</div>
+    <label class="f">เริ่มใช้การเปลี่ยนแปลงตั้งแต่<input id="rEff" type="date" value="${todayISO()}"></label>
+    <div class="row"><button class="btn ghost" id="rCancel">ยกเลิก</button><span class="grow"></span><button class="btn danger" id="rDel">เลิกงานซ้ำนี้</button><button class="btn primary" id="rSave">บันทึก</button></div>`);
+  const drawDays = () => { $('#rDays').innerHTML = DAY_CHIPS.map(d => `<span class="chip ${days.includes(d) ? 'on' : ''}" data-d="${d}">${TH_DAY[d]}</span>`).join('');
+    sh.querySelectorAll('#rDays .chip').forEach(c => c.onclick = () => { const v = +c.dataset.d; days = days.includes(v) ? days.filter(x => x !== v) : [...days, v]; drawDays(); }); };
+  drawDays();
+  sh.querySelectorAll('#rCat .chip').forEach(c => c.onclick = () => { catId = c.dataset.cat; sh.querySelectorAll('#rCat .chip').forEach(x => x.classList.toggle('on', x === c)); });
+  $('#rCancel').onclick = closeSheet;
+  $('#rDel').onclick = () => { const eff = $('#rEff').value || todayISO(); if (confirm(`เลิกงานซ้ำ "${r.title}" ตั้งแต่ ${thDate(eff)}? (วันก่อนหน้ายังอยู่ในประวัติ)`)) { splitRule(r, eff, null); closeSheet(); } };
+  $('#rSave').onclick = () => {
+    const title = $('#rTitle').value.trim(); if (!title || !days.length) return;
+    splitRule(r, $('#rEff').value || todayISO(), { title, time: $('#rTime').value || null, end: $('#rEnd').value || null, days, cat: catId }); closeSheet(); toast('บันทึกแล้ว');
+  };
+}
+
+// แก้/เพิ่มคาบในตารางสอน
+function showTTForm(d, p, rid) {
+  const r = rid ? db.rules[rid] : null;
+  let catId = r ? r.cat : 'teach', day = r ? r.days[0] : d;
+  const pOpts = sel => db.settings.periods.map(x => `<option value="${x.n}" ${+sel === x.n ? 'selected' : ''}>คาบ ${x.n} (${x.s}–${x.e})</option>`).join('');
+  const sh = openSheet(`
+    <h3>${r ? 'แก้คาบในตารางสอน' : 'เพิ่มคาบในตารางสอน'}</h3>
+    <div class="row"><label class="f grow">รายวิชา / ชั้น (เช่น ค32102 ม.5/4)<input id="cTitle" value="${esc(r?.title || '')}" autocomplete="off"></label>
+      <label class="f" style="width:110px">ห้อง<input id="cRoom" value="${esc(r?.room || '')}"></label></div>
+    <div class="f" style="color:var(--mute);font-size:19px">วัน</div>
+    <div class="chips" id="cDay">${[1, 2, 3, 4, 5, 6, 0].map(x => `<span class="chip ${x === day ? 'on' : ''}" data-d="${x}">${TH_DAY_FULL[x]}</span>`).join('')}</div>
+    <div class="row"><label class="f grow">ตั้งแต่<select id="cP1">${pOpts(r?.p1 || p)}</select></label><label class="f grow">ถึง<select id="cP2">${pOpts(r?.p2 || r?.p1 || p)}</select></label></div>
+    <div class="f" style="color:var(--mute);font-size:19px">หมวด</div><div class="chips" id="cCat">${catChips(catId)}</div>
+    <label class="f">เริ่มใช้ตั้งแต่<input id="cEff" type="date" value="${r ? todayISO() : todayISO()}"></label>
+    <div class="hint">สัปดาห์ก่อนวันที่นี้ยังเป็นตารางเดิม · ถ้าเปลี่ยนแค่วันเดียว ให้แก้จากหน้า "วันนี้" แทน</div>
+    <div class="row"><button class="btn ghost" id="cCancel">ยกเลิก</button><span class="grow"></span>
+      ${r ? '<button class="btn danger" id="cDel">ลบคาบนี้</button>' : ''}<button class="btn primary" id="cSave">บันทึก</button></div>`);
+  sh.querySelectorAll('#cDay .chip').forEach(c => c.onclick = () => { day = +c.dataset.d; sh.querySelectorAll('#cDay .chip').forEach(x => x.classList.toggle('on', x === c)); });
+  sh.querySelectorAll('#cCat .chip').forEach(c => c.onclick = () => { catId = c.dataset.cat; sh.querySelectorAll('#cCat .chip').forEach(x => x.classList.toggle('on', x === c)); });
+  $('#cCancel').onclick = closeSheet;
+  if (r) $('#cDel').onclick = () => { const eff = $('#cEff').value || todayISO(); if (confirm(`ลบ ${r.title} วัน${TH_DAY_FULL[r.days[0]]} ตั้งแต่ ${thDate(eff)}?`)) { splitRule(r, eff, null); closeSheet(); } };
+  $('#cSave').onclick = () => {
+    const title = $('#cTitle').value.trim(); if (!title) { $('#cTitle').focus(); return; }
+    let p1 = +$('#cP1').value, p2 = +$('#cP2').value; if (p2 < p1) [p1, p2] = [p2, p1];
+    const eff = $('#cEff').value || todayISO(), patch = { title, room: $('#cRoom').value.trim(), days: [day], p1, p2, cat: catId };
+    if (r) splitRule(r, eff, patch);
+    else put('rules', { id: uid(), source: 'tt', set: db.settings.ttName || '', ...patch, startDate: eff, endDate: null, createdAt: Date.now() });
+    closeSheet(); toast('บันทึกตารางสอนแล้ว');
+  };
+}
+
+// นำเข้าตารางสอนทั้งชุด (Claude ใช้ตอนอ่านภาพตารางสอนให้)
+function importTimetable(entries, { name = '', startDate = todayISO(), replace = true } = {}) {
+  if (replace) Object.values(db.rules).filter(r => r.source === 'tt' && (!r.endDate || r.endDate >= startDate)).forEach(r => splitRule(r, startDate, null));
+  entries.forEach(e => put('rules', { id: uid(), source: 'tt', set: name, title: e.title, room: e.room || '', days: [e.day], p1: e.p1, p2: e.p2 || e.p1, cat: e.cat || 'teach', startDate, endDate: null, createdAt: Date.now() }, true));
+  putSettings({ ttName: name });
+  return `นำเข้า ${entries.length} รายการ`;
+}
+
+/* ---------- ตั้งค่า ---------- */
+function showSettings() {
+  const S = db.settings;
+  let cats = structuredClone(S.cats);
+  const sh = openSheet(`
+    <div class="row"><h3 class="grow">ตั้งค่า</h3><button class="btn ghost" id="xClose">ปิด</button></div>
+    <h2 style="margin:4px 0 0">หมวดงาน</h2><div id="xCats" class="subs"></div><button class="btn sm" id="xAddCat" style="align-self:flex-start">+ เพิ่มหมวด</button>
+    <h2 style="margin:8px 0 0">เวลาของแต่ละคาบ</h2>
+    <div id="xPer" class="subs">${S.periods.map((p, i) => `<label>คาบ ${p.n} <input type="time" data-ps="${i}" value="${p.s}" style="font-size:20px"> – <input type="time" data-pe="${i}" value="${p.e}" style="font-size:20px"></label>`).join('')}</div>
+    <label class="f">พักเที่ยงหลังคาบที่<input id="xLunch" type="number" min="0" value="${S.lunchAfter}"></label>
+    <label class="f">ชื่อตารางสอนชุดปัจจุบัน<input id="xTT" value="${esc(S.ttName)}" placeholder="เช่น ภาคเรียนที่ 2/2569"></label>
+    <h2 style="margin:8px 0 0">แสดงงานจากแอปอื่นในหน้า "วันนี้"</h2>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="xTutor" ${S.showTutor ? 'checked' : ''}> สอนพิเศษ (ครบรอบ / รอโอน)</label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="xSplit" ${S.showSplit ? 'checked' : ''}> หาร (ใครยังไม่จ่ายเดือนนี้)</label>
+    <button class="btn primary" id="xSave">บันทึกการตั้งค่า</button>
+    <h2 style="margin:8px 0 0">ซิงก์ข้ามเครื่อง</h2><div id="cloudBox"></div>
+    <h2 style="margin:8px 0 0">สำรองข้อมูล</h2>
+    <div class="row"><button class="btn" id="xExport">ส่งออกไฟล์สำรอง (.json)</button><label class="btn">นำเข้าไฟล์สำรอง<input type="file" id="xImport" accept=".json,application/json" hidden></label></div>`);
+  const COLORS = ['#2f5bd3', '#0e8a9a', '#1a8a5a', '#e0700f', '#8b46d6', '#d23f6b', '#b8860b', '#4b5563'];
+  const drawCats = () => {
+    $('#xCats').innerHTML = cats.map((c, i) => `<label><select data-cc="${i}" style="width:54px;height:34px;border-radius:8px;border:1.5px solid var(--line);background:${c.color};color:#fff">${COLORS.map(x => `<option value="${x}" ${x === c.color ? 'selected' : ''} style="background:${x}">■</option>`).join('')}</select><input type="text" data-cn="${i}" value="${esc(c.name)}"><button class="btn sm ghost" data-cx="${i}" aria-label="ลบหมวด">✕</button></label>`).join('');
+    sh.querySelectorAll('[data-cc]').forEach(x => x.onchange = () => { cats[+x.dataset.cc].color = x.value; drawCats(); });
+    sh.querySelectorAll('[data-cn]').forEach(x => x.oninput = () => { cats[+x.dataset.cn].name = x.value; });
+    sh.querySelectorAll('[data-cx]').forEach(x => x.onclick = e => { e.preventDefault(); cats.splice(+x.dataset.cx, 1); drawCats(); });
+  };
+  drawCats();
+  $('#xAddCat').onclick = () => { cats.push({ id: uid().slice(0, 8), name: 'หมวดใหม่', color: COLORS[cats.length % COLORS.length] }); drawCats(); };
+  $('#xClose').onclick = closeSheet;
+  $('#xSave').onclick = () => {
+    const periods = S.periods.map((p, i) => ({ n: p.n, s: sh.querySelector(`[data-ps="${i}"]`).value || p.s, e: sh.querySelector(`[data-pe="${i}"]`).value || p.e }));
+    putSettings({ cats: cats.filter(c => c.name.trim()), periods, lunchAfter: +$('#xLunch').value || 0, ttName: $('#xTT').value.trim(), showTutor: $('#xTutor').checked, showSplit: $('#xSplit').checked });
+    toast('บันทึกการตั้งค่าแล้ว');
+  };
+  $('#xExport').onclick = () => { const { ext, ...mine } = db; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(mine, null, 1)], { type: 'application/json' })); a.download = `วันนี้-สำรอง-${todayISO()}.json`; a.click(); };
+  $('#xImport').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { const d = JSON.parse(await f.text()); if (!d.tasks || !confirm('นำเข้าข้อมูลจากไฟล์นี้?')) return;
+      for (const col of ['tasks', 'rules', 'occ']) Object.values(d[col] || {}).forEach(o => put(col, o, true)); if (d.settings) putSettings(d.settings); toast('นำเข้าแล้ว');
+    } catch (err) { alert('ไฟล์ไม่ถูกต้อง'); }
+  };
+  renderCloudBox();
+}
+function renderCloudBox() {
+  const box = $('#cloudBox'); if (!box) return;
+  if (cloud) {
+    box.innerHTML = `<div>เชื่อมต่อแล้ว: <b>${esc(cloud.email)}</b></div><div class="hint">บัญชีเดียวกับแอปสอนพิเศษและแอปหาร</div><button class="btn" id="cOut">ออกจากระบบ</button>`;
+    $('#cOut').onclick = async () => { if (confirm('ออกจากระบบ?')) { await cloud.authApi.signOut(cloud.auth); localStorage.removeItem('today-signed-in'); location.reload(); } };
+    return;
+  }
+  box.innerHTML = `<div class="hint">${syncState === 'error' ? 'โหลด Firebase ไม่สำเร็จ (ตรวจอินเทอร์เน็ต)' : 'ล็อกอินด้วยอีเมลและรหัสผ่านเดียวกับแอปสอนพิเศษ'}</div>
+    <label class="f">อีเมล<input id="cEmail" type="email" autocomplete="username"></label>
+    <label class="f">รหัสผ่าน<input id="cPass" type="password" autocomplete="current-password"></label>
+    <button class="btn primary" id="cIn" style="align-self:flex-start">เข้าสู่ระบบ</button>`;
+  $('#cIn').onclick = async () => {
+    try { const api = await loadFirebase(); await api.authApi.signInWithEmailAndPassword(api.auth, $('#cEmail').value.trim(), $('#cPass').value); }
+    catch (e) { alert('เข้าสู่ระบบไม่สำเร็จ: ' + (e.code || e.message)); }
+  };
+}
+
+/* ====================== Firebase ====================== */
+let fbApi = null;
+async function loadFirebase() {
+  if (fbApi) return fbApi;
+  const base = `https://www.gstatic.com/firebasejs/${FIREBASE_VER}/`;
+  const [app, authApi, fs] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+  const a = app.initializeApp(FIREBASE_CONFIG);
+  const auth = authApi.getAuth(a);
+  let fsdb;
+  try { fsdb = fs.initializeFirestore(a, { localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() }) }); } catch (e) { fsdb = fs.getFirestore(a); }
+  fbApi = { auth, authApi, fs, fsdb };
+  authApi.onAuthStateChanged(auth, user => { if (user) startCloud(user); else { syncState = 'local'; showSync(); } });
+  return fbApi;
+}
+function startCloud(user) {
+  if (cloud && cloud.uid === user.uid) return;
+  const { fs, fsdb, auth, authApi } = fbApi;
+  const localData = JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null');
+  cloud = { fs, fsdb, auth, authApi, uid: user.uid, email: user.email };
+  localStorage.setItem('today-signed-in', '1');
+  loadFrom(MIRROR_KEY);
+  const seen = new Set();
+  const done = () => {
+    if (seen.size < 4) return;
+    if (localData && (Object.keys(localData.tasks || {}).length || Object.keys(localData.rules || {}).length) && !localStorage.getItem('today-migrated-' + user.uid)) {
+      localStorage.setItem('today-migrated-' + user.uid, '1');
+      if (confirm('พบงานที่บันทึกในเครื่องนี้ อัปโหลดขึ้นคลาวด์ไหม?')) for (const col of ['tasks', 'rules', 'occ']) Object.values(localData[col] || {}).forEach(o => put(col, o, true));
+    }
+  };
+  let t = null; const soon = () => { clearTimeout(t); t = setTimeout(() => { saveSnapshot(); render(); }, 60); };
+  const mark = (k, snap) => { seen.add(k); syncState = snap.metadata.fromCache ? 'offline' : (snap.metadata.hasPendingWrites ? 'pending' : 'synced'); showSync(); soon(); done(); };
+  for (const col of ['tasks', 'rules', 'occ']) {
+    fs.onSnapshot(fs.collection(fsdb, 'users', user.uid, COL[col]), { includeMetadataChanges: true }, snap => {
+      const o = {}; snap.forEach(d => o[d.id] = d.data()); db[col] = o; mark(col, snap);
+    }, e => { syncState = 'error'; showSync(); toast('ซิงก์ผิดพลาด: ' + e.code); });
+  }
+  fs.onSnapshot(fs.doc(fsdb, 'users', user.uid, 'meta', 'today_settings'), { includeMetadataChanges: true }, snap => {
+    if (snap.exists()) db.settings = { ...structuredClone(DEFAULT_SETTINGS), ...snap.data() }; mark('settings', snap);
+  });
+  for (const [k, col] of Object.entries(EXT)) {
+    fs.onSnapshot(fs.collection(fsdb, 'users', user.uid, col), snap => { const o = {}; snap.forEach(d => o[d.id] = d.data()); db.ext[k] = o; soon(); }, () => {});
+  }
+  showSync(); renderCloudBox();
+}
+function showSync() {
+  $('#sync').textContent = cloud ? ({ synced: '☁️ ซิงก์แล้ว', pending: '☁️ กำลังซิงก์', offline: '☁️ ออฟไลน์', error: '⚠️ ซิงก์ไม่ได้' }[syncState] || '☁️') : '🔑 ยังไม่ล็อกอิน';
+}
+
+/* ====================== เริ่มต้น ====================== */
+$('#btnSettings').onclick = showSettings;
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.tab; if (tab === 'day' || tab === 'week') viewDate = todayISO(); render(); });
+loadFrom(localStorage.getItem('today-signed-in') ? MIRROR_KEY : LOCAL_KEY);
+render(); showSync();
+document.fonts.ready.then(render);
+loadFirebase().catch(e => { console.warn(e); syncState = 'error'; showSync(); });
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+let lastDay = todayISO();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (todayISO() !== lastDay) { lastDay = todayISO(); viewDate = lastDay; } render(); } });
+setInterval(() => { if (tab === 'day' && !$('#dlg').open && document.activeElement?.id !== 'qIn') render(); }, 60000);
+window.__today = { db, render, importTimetable, parseQuick };
+</script>
+</body>
+</html>
