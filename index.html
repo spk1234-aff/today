@@ -312,6 +312,15 @@ function parseQuick(text, base) {
   return { title: s.replace(/\s+/g, ' ').trim(), date, time, end, important, cat: catId };
 }
 
+/* ====================== ตัวเลขบนไอคอน ====================== */
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const badgeState = () => !('setAppBadge' in navigator) ? 'unsupported' : !('Notification' in window) ? 'needs-install' : Notification.permission;
+async function enableBadge() {
+  if (!('Notification' in window)) { alert('ต้องเปิดแอปจากไอคอนบนหน้าจอโฮมก่อน (Safari → แชร์ → เพิ่มไปยังหน้าจอโฮม) แล้วกดปุ่มนี้อีกครั้งในแอปนั้น'); return; }
+  try { const r = await Notification.requestPermission(); toast(r === 'granted' ? 'เปิดตัวเลขบนไอคอนแล้ว' : 'ยังไม่ได้อนุญาต เปิดได้ที่ การตั้งค่า iPhone → การแจ้งเตือน → วันนี้'); } catch (e) {}
+  render(); renderBadgeBox();
+}
+
 /* ====================== หน้าจอ ====================== */
 let tab = 'day', viewDate = todayISO();
 function render() {
@@ -372,6 +381,7 @@ function renderDay() {
     <div class="progress" title="เสร็จ ${doneN}/${countable.length}"><i style="width:${countable.length ? doneN / countable.length * 100 : 0}%"></i></div>
     <form class="quick" id="quick"><input id="qIn" placeholder="+ เพิ่มงาน เช่น ประชุม 13:00 พรุ่งนี้" autocomplete="off"><button class="btn primary">เพิ่ม</button></form>
     <div class="qhint">พิมพ์วัน/เวลาต่อท้ายได้ เช่น พรุ่งนี้, ศุกร์, 20 พ.ย., 13:00 · ! = สำคัญ · #หมวด</div>
+    ${isToday && isStandalone() && badgeState() === 'default' && !localStorage.getItem('today-badge-dismiss') ? `<div class="ext" style="cursor:pointer" id="badgeBanner"><span class="ic">🔴</span><span class="t">แสดงจำนวนงานเป็นเลขแดงบนไอคอนแอป<small>แตะแล้วกด "อนุญาต" (iPhone ต้องอนุญาตการแจ้งเตือนก่อน ตัวเลขถึงจะขึ้น)</small></span><button class="btn sm ghost" id="badgeX" aria-label="ปิด">✕</button></div>` : ''}
     ${od.length ? `<h2 style="color:var(--now)">ค้างจากวันก่อน <span class="cnt">${od.length}</span></h2>${od.map(it => itemHTML(it, { overdue: true })).join('')}` : ''}
     ${timed.length ? `<h2>ตามเวลา <span class="cnt">${timed.filter(x => x.done).length}/${timed.filter(x => !x.skip).length}</span></h2><div class="timeline">${timedHTML}</div>` : ''}
     ${untimed.length ? `<h2>ไม่ระบุเวลา <span class="cnt">${untimed.filter(x => x.done).length}/${untimed.length}</span></h2>${untimed.map(it => itemHTML(it)).join('')}` : ''}
@@ -436,6 +446,7 @@ function renderTT() {
     ${future.length ? `<div class="hint">มีคาบที่จะเริ่มใช้ในอนาคต ${future.length} รายการ (แสดงจาง ๆ)</div>` : ''}`;
 }
 function bind() {
+  if ($('#badgeBanner')) { $('#badgeBanner').onclick = enableBadge; $('#badgeX').onclick = e => { e.stopPropagation(); localStorage.setItem('today-badge-dismiss', '1'); render(); }; }
   document.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { const k = +b.dataset.nav; viewDate = k === 0 ? todayISO() : addDays(viewDate, k); render(); });
   document.querySelectorAll('[data-wnav]').forEach(b => b.onclick = () => { const k = +b.dataset.wnav; viewDate = k === 0 ? todayISO() : addDays(viewDate, k); render(); });
   document.querySelectorAll('[data-goday]').forEach(b => b.onclick = () => { viewDate = b.dataset.goday; tab = 'day'; render(); });
@@ -634,6 +645,7 @@ function showSettings() {
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="xTutor" ${S.showTutor ? 'checked' : ''}> สอนพิเศษ (ครบรอบ / รอโอน)</label>
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="xSplit" ${S.showSplit ? 'checked' : ''}> หาร (ใครยังไม่จ่ายเดือนนี้)</label>
     <button class="btn primary" id="xSave">บันทึกการตั้งค่า</button>
+    <h2 style="margin:8px 0 0">ตัวเลขบนไอคอนแอป</h2><div id="badgeBox"></div>
     <h2 style="margin:8px 0 0">ซิงก์ข้ามเครื่อง</h2><div id="cloudBox"></div>
     <h2 style="margin:8px 0 0">สำรองข้อมูล</h2>
     <div class="row"><button class="btn" id="xExport">ส่งออกไฟล์สำรอง (.json)</button><label class="btn">นำเข้าไฟล์สำรอง<input type="file" id="xImport" accept=".json,application/json" hidden></label></div>`);
@@ -659,7 +671,14 @@ function showSettings() {
       for (const col of ['tasks', 'rules', 'occ']) Object.values(d[col] || {}).forEach(o => put(col, o, true)); if (d.settings) putSettings(d.settings); toast('นำเข้าแล้ว');
     } catch (err) { alert('ไฟล์ไม่ถูกต้อง'); }
   };
-  renderCloudBox();
+  renderCloudBox(); renderBadgeBox();
+}
+function renderBadgeBox() {
+  const box = $('#badgeBox'); if (!box) return;
+  const st = badgeState();
+  const msg = { granted: '✅ เปิดอยู่ — ไอคอนแสดงจำนวนงานที่ยังไม่เสร็จวันนี้ (อัปเดตทุกครั้งที่เปิดแอป)', denied: '⛔ ถูกปิดไว้ เปิดได้ที่ การตั้งค่า iPhone → การแจ้งเตือน → วันนี้ → อนุญาต และเปิด "ป้ายสถานะ"', default: 'ยังไม่ได้เปิด กดปุ่มแล้วเลือก "อนุญาต"', 'needs-install': 'ต้องเปิดแอปจากไอคอนบนหน้าจอโฮมก่อน (Safari → แชร์ → เพิ่มไปยังหน้าจอโฮม)', unsupported: 'เครื่องหรือเบราว์เซอร์นี้ไม่รองรับตัวเลขบนไอคอน (iPhone ต้องเป็น iOS 16.4 ขึ้นไป)' }[st];
+  box.innerHTML = `<div class="hint">${msg}</div>${st === 'default' || st === 'needs-install' ? '<button class="btn primary" id="badgeBtn" style="align-self:flex-start">🔴 เปิดตัวเลขบนไอคอน</button>' : ''}`;
+  if ($('#badgeBtn')) $('#badgeBtn').onclick = enableBadge;
 }
 function renderCloudBox() {
   const box = $('#cloudBox'); if (!box) return;
